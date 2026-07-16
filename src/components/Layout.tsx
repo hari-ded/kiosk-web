@@ -6,9 +6,10 @@ import { useSupport } from '../contexts/SupportContext';
 
 interface LayoutProps {
   children: ReactNode;
+  disableInactivityWarning?: boolean;
 }
 
-export function Layout({ children }: LayoutProps) {
+export function Layout({ children, disableInactivityWarning = false }: LayoutProps) {
   const inactivity = useInactivityTimeout();
   const location = useLocation();
   const onHelp = useSupport();
@@ -33,7 +34,7 @@ export function Layout({ children }: LayoutProps) {
         {children}
       </main>
 
-      {inactivity.warningVisible && (
+      {!disableInactivityWarning && inactivity.warningVisible && (
         <div className="absolute inset-0 z-50 flex items-center justify-center p-6 kiosk-overlay kiosk-blur">
           <div className="w-full max-w-2xl rounded-3xl border p-8 md:p-10 text-center flex flex-col items-center kiosk-panel-strong">
             <div className="w-20 h-20 mx-auto mb-6 rounded-full text-white flex items-center justify-center kiosk-circle-amber">

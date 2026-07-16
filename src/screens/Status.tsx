@@ -174,7 +174,7 @@ export function Status() {
 
   if (!job) {
     return (
-      <Layout>
+      <Layout disableInactivityWarning={status === 'processing' || status === 'printing'}>
         <div className="flex-1 flex items-center justify-center">
           <div className="animate-spin w-16 h-16 border-8 rounded-full kiosk-spinner-rose"></div>
         </div>
@@ -183,7 +183,7 @@ export function Status() {
   }
 
   return (
-    <Layout>
+    <Layout disableInactivityWarning={status === 'processing' || status === 'printing'}>
       <div className="flex-1 flex flex-col items-center justify-center pb-16">
         {status === 'processing' && (
           <div className="flex flex-col items-center max-w-2xl text-center">
@@ -272,6 +272,7 @@ export function Status() {
     </Layout>
   );
 }
+
 
 
 
