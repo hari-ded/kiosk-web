@@ -4,7 +4,7 @@ import { checkJobStatus } from '../api';
 import { PrintJob } from '../types';
 import { Layout } from '../components/Layout';
 import { Printer, CheckCircle2, XCircle, Home } from 'lucide-react';
-import { playSound, speak } from '../utils/audio';
+import { playSound } from '../utils/audio';
 
 const SUCCESS_STATES = ['printed', 'completed', 'complete', 'success', 'done', 'finished'];
 const FAILURE_STATES = ['failed', 'failure', 'error', 'errored', 'aborted', 'cancelled', 'canceled'];
@@ -42,13 +42,11 @@ export function Status() {
     if (status === 'printing' && !playedPrintingRef.current) {
       playedPrintingRef.current = true;
       playSound('printingWait', 0.8);
-      speak('Printing in progress. Please wait.');
     }
 
     if (status === 'completed' && !playedCompleteRef.current) {
       playedCompleteRef.current = true;
       playSound('printComplete', 0.85);
-      speak('Print complete. Please collect your documents.');
     }
   }, [status]);
 

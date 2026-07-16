@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { validateJobCode } from '../api';
 import { Layout } from '../components/Layout';
 import { ArrowLeft, Delete, Sparkles } from 'lucide-react';
-import { playSound, speak } from '../utils/audio';
+import { playSound } from '../utils/audio';
 
 const buttonBase =
   'h-20 rounded-xl border-2 shadow-sm flex items-center justify-center transition-all select-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 active:scale-[0.98]';
@@ -20,7 +20,6 @@ export function ManualCode() {
     if (!hasPlayedEnterRef.current) {
       hasPlayedEnterRef.current = true;
       playSound('enterPickupCode', 0.8);
-      speak('Please enter your six digit pickup code.');
     }
   }, []);
 
@@ -102,10 +101,10 @@ export function ManualCode() {
               type="button"
               onClick={handleConfirm}
               disabled={code.length !== 6 || validating}
-              className={`h-16 w-full rounded-xl text-xl font-bold flex items-center justify-center shadow-md border-2 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0 ${
+              className={`h-16 w-full rounded-xl text-xl font-bold flex items-center justify-center gap-3 shadow-md border-2 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-75 ${
                 code.length === 6 && !validating
-                  ? 'bg-gradient-to-r from-rose-500 to-orange-500 border-rose-600 text-white shadow-lg active:brightness-95'
-                  : 'bg-gray-200 border-gray-300 text-gray-500 opacity-90'
+                  ? 'bg-gradient-to-r from-rose-500 to-orange-500 border-rose-600 text-white shadow-lg shadow-rose-200 active:brightness-95'
+                  : 'bg-gradient-to-r from-rose-400 to-orange-400 border-rose-500 text-white shadow-lg shadow-rose-100'
               }`}
             >
               {validating ? (

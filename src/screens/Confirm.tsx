@@ -4,7 +4,7 @@ import { fetchConsumables, requestOtp, verifyOtp, releaseJob, sendAlert } from '
 import { PrintJob } from '../types';
 import { Layout } from '../components/Layout';
 import { ArrowLeft, Delete, FileText, Lock, ShieldCheck, Sparkles } from 'lucide-react';
-import { playSound, speak } from '../utils/audio';
+import { playSound } from '../utils/audio';
 
 function readStoredJob() {
   try {
@@ -25,7 +25,6 @@ export function Confirm() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const previousErrorRef = useRef<string | null>(null);
-  const previousOtpModeRef = useRef(false);
 
   useEffect(() => {
     if (!job) {
@@ -37,17 +36,9 @@ export function Confirm() {
     const nextError = error;
     if (nextError && nextError !== previousErrorRef.current) {
       playSound('invalidCode', 0.8);
-      speak(nextError);
     }
     previousErrorRef.current = nextError;
   }, [error]);
-
-  useEffect(() => {
-    if (otpMode && !previousOtpModeRef.current) {
-      speak('Verification code sent. Please enter the code to continue.');
-    }
-    previousOtpModeRef.current = otpMode;
-  }, [otpMode]);
 
   if (!job) {
     return (
@@ -118,7 +109,7 @@ export function Confirm() {
       }
 
       await onSuccess();
-    } catch (err) {
+    } catch {
       setError('An error occurred. Please try again.');
       setLoading(false);
     }
@@ -175,9 +166,7 @@ export function Confirm() {
   const detailTone = otpMode ? 'text-rose-600' : 'text-sky-600';
   const actionButtonTone = loading
     ? 'bg-gray-300 text-gray-500 border-gray-300'
-    : job.email
-      ? 'bg-gradient-to-r from-sky-500 to-cyan-500 border-sky-600 text-white shadow-lg shadow-sky-200 active:brightness-95'
-      : 'bg-gradient-to-r from-rose-500 to-orange-500 border-rose-600 text-white shadow-lg shadow-rose-200 active:brightness-95';
+    : 'bg-gradient-to-r from-rose-500 to-orange-500 border-rose-600 text-white shadow-lg shadow-rose-200 active:brightness-95 disabled:opacity-75 disabled:cursor-not-allowed';
   const actionLabel = job.email ? 'Confirm Details & Send Code' : 'Confirm Details & Print';
 
   return (
@@ -233,7 +222,7 @@ export function Confirm() {
                 type="button"
                 onClick={handleInitialAction}
                 disabled={loading}
-                className={`w-full max-w-2xl h-20 border-2 text-2xl font-bold rounded-xl shadow-md active:opacity-80 transition-all flex items-center justify-center gap-4 focus:outline-none focus-visible:outline-none focus-visible:ring-0 ${actionButtonTone}`}
+                className={`w-full max-w-2xl h-20 border-2 text-2xl font-bold rounded-xl shadow-md active:opacity-80 transition-all flex items-center justify-center gap-4 focus:outline-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-75 ${actionButtonTone}`}
               >
                 {loading ? (
                   <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -269,11 +258,7 @@ export function Confirm() {
                   type="button"
                   onClick={handleVerifyOtpAndPrint}
                   disabled={otp.length !== 6 || loading}
-                  className={`h-16 w-full rounded-xl text-xl font-bold flex items-center justify-center shadow-md border-2 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0 ${
-                    otp.length === 6 && !loading
-                      ? 'bg-gradient-to-r from-rose-500 to-orange-500 border-rose-600 text-white shadow-lg shadow-rose-200 active:brightness-95'
-                      : 'bg-gray-200 border-gray-300 text-gray-500 opacity-90'
-                  }`}
+                  className={`h-16 w-full rounded-xl text-xl font-bold flex items-center justify-center gap-3 shadow-md border-2 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-75 ${actionButtonTone}`}
                 >
                   {loading ? (
                     <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>

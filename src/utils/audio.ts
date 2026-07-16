@@ -26,22 +26,7 @@ export function playSound(name: SoundName, volume = 0.7) {
     audio.volume = volume;
     void audio.play();
   } catch {
-    // Ignore audio failures on kiosk devices that block autoplay.
-  }
-}
-
-export function speak(text: string, rate = 1, pitch = 1) {
-  if (typeof window === 'undefined' || !('speechSynthesis' in window)) return;
-
-  try {
-    window.speechSynthesis.cancel();
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'en-US';
-    utterance.rate = rate;
-    utterance.pitch = pitch;
-    window.speechSynthesis.speak(utterance);
-  } catch {
-    // Ignore speech synthesis failures silently.
+    // Some kiosk browsers block autoplay until a tap happens.
   }
 }
 

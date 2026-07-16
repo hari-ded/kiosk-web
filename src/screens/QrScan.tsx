@@ -4,7 +4,7 @@ import { Html5Qrcode } from 'html5-qrcode';
 import { validateJobCode } from '../api';
 import { Layout } from '../components/Layout';
 import { ArrowLeft } from 'lucide-react';
-import { playSound, speak } from '../utils/audio';
+import { playSound } from '../utils/audio';
 
 export function QrScan() {
   const navigate = useNavigate();
@@ -18,7 +18,6 @@ export function QrScan() {
     const nextError = error;
     if (nextError && nextError !== previousErrorRef.current) {
       playSound('invalidCode', 0.8);
-      speak(nextError);
     }
     previousErrorRef.current = nextError;
   }, [error]);
@@ -75,7 +74,7 @@ export function QrScan() {
           },
           () => {}
         );
-      } catch (err) {
+      } catch {
         if (mounted) setCameraError(true);
       }
     };

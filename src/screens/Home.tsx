@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchConsumables } from '../api';
 import { Layout } from '../components/Layout';
 import { QrCode, Keyboard } from 'lucide-react';
-import { playSound, speak } from '../utils/audio';
+import { playSound } from '../utils/audio';
 
 export function Home() {
   const navigate = useNavigate();
@@ -14,7 +14,6 @@ export function Home() {
     if (thankYouFlag === 'thank_you') {
       sessionStorage.removeItem('arox_returning_home_audio');
       playSound('thankYou', 0.8);
-      speak('Thank you.');
     }
   }, []);
 
@@ -70,7 +69,7 @@ export function Home() {
             className="flex-1 h-64 bg-gradient-to-br from-sky-50 to-cyan-50 border-2 border-sky-200 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-6 active:bg-sky-100 active:border-sky-300 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0"
           >
             <div className="w-24 h-24 bg-gradient-to-br from-sky-500 to-cyan-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-sky-200">
-              <QrCode size={48} />
+              <QrCode size={48} strokeWidth={2.5} />
             </div>
             <span className="text-2xl font-bold text-sky-900">Scan QR Code</span>
           </button>
@@ -81,7 +80,7 @@ export function Home() {
             className="flex-1 h-64 bg-gradient-to-br from-rose-50 to-orange-50 border-2 border-rose-200 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-6 active:bg-rose-100 active:border-rose-300 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0"
           >
             <div className="w-24 h-24 bg-gradient-to-br from-rose-500 to-orange-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-rose-200">
-              <Keyboard size={48} />
+              <Keyboard size={48} strokeWidth={2.5} />
             </div>
             <span className="text-2xl font-bold text-rose-900">Enter Code</span>
           </button>
