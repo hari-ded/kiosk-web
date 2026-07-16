@@ -45,7 +45,7 @@ export async function validateJobCode(code: string): Promise<{ job?: PrintJob, e
         copies: Number(data.copies) || 1,
         color: Boolean(data.color),
         status: data.status || 'unknown',
-        pickup_code: code,
+        pickup_code: /^\d{6}$/.test(code) ? `ARX-${code}` : code,
         estimated_time_seconds: Number(data.estimated_time_seconds) || 0,
         email: data.email || null
       }
@@ -67,7 +67,8 @@ export async function requestOtp(code: string): Promise<boolean> {
 }
 
 export async function verifyOtp(code: string, otp: string): Promise<boolean> {
-  const res = await fetch(`${API_URL}/job/${code}/verify_release_otp`, {
+  const pickupCode = /^\d{6}$/.test(code) ? `ARX-${code}` : code;
+  const res = await fetch(`${API_URL}/job/${pickupCode}/verify_release_otp`, {
     method: 'POST',
     cache: 'no-store',
     headers: defaultHeaders,
@@ -78,11 +79,12 @@ export async function verifyOtp(code: string, otp: string): Promise<boolean> {
 }
 
 export async function releaseJob(code: string): Promise<boolean> {
+  const pickupCode = /^\d{6}$/.test(code) ? `ARX-${code}` : code;
   const res = await fetch(`${API_URL}/release_job`, {
     method: 'POST',
     cache: 'no-store',
     headers: defaultHeaders,
-    body: JSON.stringify({ pickup_code: code, kiosk_id: KIOSK_ID })
+    body: JSON.stringify({ pickup_code: pickupCode, kiosk_id: KIOSK_ID })
   });
   const data = await res.json();
   return data.success;
