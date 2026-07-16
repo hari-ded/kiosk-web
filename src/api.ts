@@ -1,6 +1,6 @@
 import { PrintJob, Consumables } from './types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://arox-api-993539509814.asia-south1.run.app/api';
+const API_URL = import.meta.env.VITE_API_URL || '/api';
 const KIOSK_ID = import.meta.env.VITE_KIOSK_ID || '1';
 
 const defaultHeaders = {
@@ -27,17 +27,16 @@ export async function fetchConsumables(): Promise<Consumables> {
 export async function validateJobCode(code: string): Promise<{ job?: PrintJob, error?: string }> {
   try {
     let res = await fetch(`${API_URL}/job/${code}?kiosk_id=${KIOSK_ID}`, { cache: 'no-store', headers: defaultHeaders });
-    
-    // Fallback if exactly 6 digits
+
     if (!res.ok && /^\d{6}$/.test(code)) {
       res = await fetch(`${API_URL}/job/ARX-${code}?kiosk_id=${KIOSK_ID}`, { cache: 'no-store', headers: defaultHeaders });
     }
-    
+
     const data = await res.json();
     if (data.success === false) {
       return { error: data.error || data.message || 'Invalid pickup code' };
     }
-    
+
     return {
       job: {
         id: data.upload_id,
@@ -120,5 +119,9 @@ export async function createSupportCall(category: string, description: string = 
     body: JSON.stringify({ kiosk_id: KIOSK_ID, category, description })
   });
   if (!res.ok) throw new Error('Failed to create support call');
-  return res.json();
+  const data = await res.json();
+  return {
+    ...data,
+    id: data.id || data.call_id,
+  };
 }

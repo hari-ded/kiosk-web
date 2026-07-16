@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { fetchConsumables, requestOtp, verifyOtp, releaseJob, sendAlert } from '../api';
 import { PrintJob } from '../types';
@@ -173,7 +173,7 @@ export function Confirm() {
                   {job.filename}
                 </h3>
                 <p className="text-gray-500 text-lg">
-                  {job.pages} Pages • {job.copies} Copies • {job.color ? 'Color' : 'Black & White'} • {job.pages * job.copies} Total
+                  {job.pages} Pages - {job.copies} Copies - {job.color ? 'Color' : 'Black & White'} - {job.pages * job.copies} Total
                 </p>
               </div>
             </div>

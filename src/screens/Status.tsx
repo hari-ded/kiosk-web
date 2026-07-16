@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { checkJobStatus } from '../api';
 import { PrintJob } from '../types';
@@ -17,6 +17,14 @@ export function Status() {
   const [progress, setProgress] = useState(0);
 
   const mountedRef = useRef(true);
+  const statusRef = useRef(status);
+  const pollTimeoutRef = useRef<number | null>(null);
+  const progressIntervalRef = useRef<number | null>(null);
+  const completionTimeoutRef = useRef<number | null>(null);
+
+  useEffect(() => {
+    statusRef.current = status;
+  }, [status]);
 
   useEffect(() => {
     if (!job) {
@@ -26,73 +34,97 @@ export function Status() {
 
     mountedRef.current = true;
 
-    // Simulate progress while printing
-    const progressInterval = setInterval(() => {
-      setProgress(prev => {
-        if (prev >= 90 || status !== 'printing') return prev;
-        return prev + Math.floor(Math.random() * 10) + 5; // advance slowly
-      });
-    }, 1000);
+    const clearTimers = () => {
+      if (pollTimeoutRef.current) {
+        clearTimeout(pollTimeoutRef.current);
+        pollTimeoutRef.current = null;
+      }
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+      if (completionTimeoutRef.current) {
+        clearTimeout(completionTimeoutRef.current);
+        completionTimeoutRef.current = null;
+      }
+    };
+
+    const schedulePoll = (delay: number) => {
+      if (!mountedRef.current) return;
+      if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current);
+      pollTimeoutRef.current = window.setTimeout(() => {
+        void pollStatus();
+      }, delay);
+    };
 
     const pollStatus = async () => {
       try {
         const currentStatus = await checkJobStatus(job.id);
         const lowerStatus = currentStatus.toLowerCase();
-        
+
         if (!mountedRef.current) return;
 
         if (SUCCESS_STATES.includes(lowerStatus)) {
           setStatus('completed');
           setProgress(100);
-          clearInterval(progressInterval);
-          setTimeout(() => {
+          clearTimers();
+          completionTimeoutRef.current = window.setTimeout(() => {
             if (mountedRef.current) {
               navigate('/', { replace: true });
             }
           }, 5000);
-        } else if (FAILURE_STATES.includes(lowerStatus)) {
-          setStatus('failed');
-          clearInterval(progressInterval);
-        } else if (lowerStatus === 'printing') {
-          setStatus('printing');
-          const isHidden = document.hidden;
-          setTimeout(pollStatus, isHidden ? 15000 : 3000);
-        } else {
-          // e.g. onkiosk, queued, etc.
-          setStatus('processing');
-          const isHidden = document.hidden;
-          setTimeout(pollStatus, isHidden ? 15000 : 3000);
+          return;
         }
+
+        if (FAILURE_STATES.includes(lowerStatus)) {
+          setStatus('failed');
+          if (progressIntervalRef.current) {
+            clearInterval(progressIntervalRef.current);
+            progressIntervalRef.current = null;
+          }
+          return;
+        }
+
+        if (lowerStatus === 'printing') {
+          setStatus('printing');
+        } else {
+          setStatus('processing');
+        }
+
+        schedulePoll(document.hidden ? 15000 : 3000);
       } catch (err) {
-        // Back off on error
         if (mountedRef.current) {
-          setTimeout(pollStatus, 5000);
+          schedulePoll(5000);
         }
       }
     };
 
-    // Start polling
-    pollStatus();
+    progressIntervalRef.current = window.setInterval(() => {
+      setProgress(prev => {
+        if (prev >= 90 || statusRef.current !== 'printing') return prev;
+        return Math.min(90, prev + Math.floor(Math.random() * 10) + 5);
+      });
+    }, 1000);
+
+    void pollStatus();
 
     return () => {
       mountedRef.current = false;
-      clearInterval(progressInterval);
+      clearTimers();
     };
-  }, [job, navigate, status]);
+  }, [job, navigate]);
 
   if (!job) return null;
 
   return (
     <Layout>
       <div className="flex-1 flex flex-col items-center justify-center pb-16">
-        
         {status === 'processing' && (
           <div className="flex flex-col items-center max-w-2xl text-center">
             <div className="w-32 h-32 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center mb-8 relative">
               <div className="absolute inset-0 rounded-full border-8 border-gray-200 border-t-rose-500 animate-spin"></div>
               <Printer size={48} className="relative z-10" />
             </div>
-            
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
               Processing your job...
             </h2>
@@ -106,9 +138,9 @@ export function Status() {
           <div className="flex flex-col items-center max-w-2xl text-center">
             <div className="w-32 h-32 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mb-8 relative">
               <div className="absolute inset-0 rounded-full border-8 border-rose-200"></div>
-              <div 
+              <div
                 className="absolute inset-0 rounded-full border-8 border-rose-600 transition-all duration-500"
-                style={{ 
+                style={{
                   clipPath: `inset(${100 - progress}% 0 0 0)`,
                   transition: 'clip-path 1s linear'
                 }}
@@ -165,7 +197,6 @@ export function Status() {
             </button>
           </div>
         )}
-
       </div>
     </Layout>
   );
