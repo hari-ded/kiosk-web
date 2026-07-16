@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { validateJobCode } from '../api';
 import { Layout } from '../components/Layout';
-import { ArrowLeft, Delete } from 'lucide-react';
+import { ArrowLeft, Delete, Sparkles } from 'lucide-react';
+import { playSound, speak } from '../utils/audio';
 
 const buttonBase =
   'h-20 rounded-xl border-2 shadow-sm flex items-center justify-center transition-all select-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 active:scale-[0.98]';
@@ -12,6 +13,24 @@ export function ManualCode() {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [validating, setValidating] = useState(false);
+  const hasPlayedEnterRef = useRef(false);
+  const previousErrorRef = useRef<string | null>(null);
+
+  useEffect(() => {
+    if (!hasPlayedEnterRef.current) {
+      hasPlayedEnterRef.current = true;
+      playSound('enterPickupCode', 0.8);
+      speak('Please enter your six digit pickup code.');
+    }
+  }, []);
+
+  useEffect(() => {
+    const nextError = error;
+    if (nextError && nextError !== previousErrorRef.current) {
+      playSound('invalidCode', 0.8);
+    }
+    previousErrorRef.current = nextError;
+  }, [error]);
 
   const handlePadClick = (val: string) => {
     if (validating) return;
@@ -92,7 +111,10 @@ export function ManualCode() {
               {validating ? (
                 <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
-                'Confirm Code'
+                <>
+                  <Sparkles size={24} />
+                  Confirm Code
+                </>
               )}
             </button>
           </div>

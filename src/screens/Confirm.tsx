@@ -1,9 +1,10 @@
-import { useState, useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { fetchConsumables, requestOtp, verifyOtp, releaseJob, sendAlert } from '../api';
 import { PrintJob } from '../types';
 import { Layout } from '../components/Layout';
-import { ArrowLeft, Delete, FileText, Lock } from 'lucide-react';
+import { ArrowLeft, Delete, FileText, Lock, ShieldCheck, Sparkles } from 'lucide-react';
+import { playSound, speak } from '../utils/audio';
 
 function readStoredJob() {
   try {
@@ -23,9 +24,9 @@ export function Confirm() {
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const previousErrorRef = useRef<string | null>(null);
+  const previousOtpModeRef = useRef(false);
 
-  const requestedRef = useRef(false);
-  
   useEffect(() => {
     if (!job) {
       navigate('/', { replace: true });
@@ -33,17 +34,26 @@ export function Confirm() {
   }, [job, navigate]);
 
   useEffect(() => {
-    if (job && job.email && !requestedRef.current) {
-      requestedRef.current = true;
-      handleInitialAction();
+    const nextError = error;
+    if (nextError && nextError !== previousErrorRef.current) {
+      playSound('invalidCode', 0.8);
+      speak(nextError);
     }
-  }, [job]);
+    previousErrorRef.current = nextError;
+  }, [error]);
+
+  useEffect(() => {
+    if (otpMode && !previousOtpModeRef.current) {
+      speak('Verification code sent. Please enter the code to continue.');
+    }
+    previousOtpModeRef.current = otpMode;
+  }, [otpMode]);
 
   if (!job) {
     return (
       <Layout>
         <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin w-16 h-16 border-8 border-gray-200 border-t-blue-600 rounded-full"></div>
+          <div className="animate-spin w-16 h-16 border-8 border-gray-200 border-t-rose-600 rounded-full"></div>
         </div>
       </Layout>
     );
@@ -76,14 +86,14 @@ export function Confirm() {
   const checkConsumablesAndPrint = async (onSuccess: () => Promise<void>) => {
     setLoading(true);
     setError(null);
-    
+
     try {
       const consumables = await fetchConsumables();
       const required = Math.max(1, job.pages) * Math.max(1, job.copies);
-      
+
       let alertType = '';
       let message = '';
-      
+
       if (consumables.paper_remaining < required) {
         alertType = 'paper_low';
         message = 'Not enough paper to print this job.';
@@ -91,16 +101,16 @@ export function Confirm() {
         alertType = 'toner_low';
         message = 'Not enough toner to print this job.';
       }
-      
+
       if (alertType) {
         await sendAlert(alertType, 'print', message, { required_units: required, remaining_paper: consumables.paper_remaining, remaining_toner: consumables.toner_remaining });
-        navigate('/low-supply', { 
-          state: { 
-            source: 'print', 
-            message, 
-            alertType, 
-            consumables, 
-            requiredUnits: required 
+        navigate('/low-supply', {
+          state: {
+            source: 'print',
+            message,
+            alertType,
+            consumables,
+            requiredUnits: required
           },
           replace: true
         });
@@ -120,6 +130,7 @@ export function Confirm() {
         const success = await requestOtp(job.pickup_code);
         if (success) {
           setOtpMode(true);
+          setLoading(false);
         } else {
           const releaseSuccess = await releaseJob(job.pickup_code);
           if (releaseSuccess) {
@@ -127,23 +138,23 @@ export function Confirm() {
           } else {
             setError('Failed to release job.');
           }
+          setLoading(false);
         }
-        setLoading(false);
       } else {
         const releaseSuccess = await releaseJob(job.pickup_code);
         if (releaseSuccess) {
           navigate(`/status/${job.id}`, { state: { job } });
         } else {
           setError('Failed to release job.');
-          setLoading(false);
         }
+        setLoading(false);
       }
     });
   };
 
   const handleVerifyOtpAndPrint = async () => {
     if (otp.length !== 6) return;
-    
+
     await checkConsumablesAndPrint(async () => {
       const valid = await verifyOtp(job.pickup_code, otp);
       if (valid) {
@@ -161,18 +172,27 @@ export function Confirm() {
     });
   };
 
+  const detailTone = otpMode ? 'text-rose-600' : 'text-sky-600';
+  const actionButtonTone = loading
+    ? 'bg-gray-300 text-gray-500 border-gray-300'
+    : job.email
+      ? 'bg-gradient-to-r from-sky-500 to-cyan-500 border-sky-600 text-white shadow-lg shadow-sky-200 active:brightness-95'
+      : 'bg-gradient-to-r from-rose-500 to-orange-500 border-rose-600 text-white shadow-lg shadow-rose-200 active:brightness-95';
+  const actionLabel = job.email ? 'Confirm Details & Send Code' : 'Confirm Details & Print';
+
   return (
     <Layout>
       <div className="flex-1 flex flex-col max-w-5xl w-full mx-auto pb-8">
         <div className="flex items-center mb-8 relative">
           <button
+            type="button"
             onClick={() => navigate('/')}
-            className="absolute left-0 h-16 px-6 flex items-center gap-3 bg-white border border-gray-200 rounded-xl shadow-sm text-xl font-bold text-gray-700 active:bg-gray-100"
+            className="absolute left-0 h-16 px-6 flex items-center gap-3 bg-white border border-gray-200 rounded-xl shadow-sm text-xl font-bold text-gray-700 active:bg-gray-100 focus:outline-none focus-visible:outline-none focus-visible:ring-0"
           >
             <ArrowLeft size={28} />
             Cancel
           </button>
-          <h2 className="text-3xl font-bold text-gray-900 w-full text-center">
+          <h2 className={`text-3xl font-bold w-full text-center ${detailTone}`}>
             {otpMode ? 'Verify Identity' : 'Confirm Print Job'}
           </h2>
         </div>
@@ -180,15 +200,21 @@ export function Confirm() {
         <div className="flex-1 flex flex-col items-center justify-center gap-8">
           <div className="w-full bg-white border border-gray-200 shadow-sm rounded-2xl p-6 flex items-center justify-between">
             <div className="flex items-center gap-6">
-              <div className="flex items-center justify-center w-16 h-16 bg-rose-50 text-rose-600 rounded-full">
+              <div className="flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 text-white shadow-md">
                 <FileText size={32} />
               </div>
               <div className="flex flex-col">
                 <h3 className="text-2xl font-bold text-gray-900 truncate max-w-lg">
                   {job.filename}
                 </h3>
-                <p className="text-gray-500 text-lg">
-                  {job.pages} Pages - {job.copies} Copies - {job.color ? 'Color' : 'Black & White'} - {job.pages * job.copies} Total
+                <p className="text-gray-600 text-lg font-medium">
+                  <span className="text-sky-600">{job.pages} Pages</span>
+                  {'  -  '}
+                  <span className="text-rose-500">{job.copies} Copies</span>
+                  {'  -  '}
+                  <span className={job.color ? 'text-emerald-600' : 'text-gray-700'}>{job.color ? 'Color' : 'Black & White'}</span>
+                  {'  -  '}
+                  <span className="text-amber-600">{job.pages * job.copies} Total</span>
                 </p>
               </div>
             </div>
@@ -197,22 +223,24 @@ export function Confirm() {
           {!otpMode ? (
             <div className="w-full flex flex-col items-center mt-8">
               {error && (
-                <div className="mb-6 text-xl font-bold text-red-600">
+                <div className="mb-6 text-xl font-bold text-red-600 flex items-center gap-3">
+                  <ShieldCheck size={24} />
                   {error}
                 </div>
               )}
 
               <button
+                type="button"
                 onClick={handleInitialAction}
                 disabled={loading}
-                className="w-full max-w-2xl h-20 bg-gradient-to-r from-rose-500 to-orange-500 border-0 text-white text-2xl font-bold rounded-xl shadow-md active:opacity-80 transition-colors flex items-center justify-center gap-4"
+                className={`w-full max-w-2xl h-20 border-2 text-2xl font-bold rounded-xl shadow-md active:opacity-80 transition-all flex items-center justify-center gap-4 focus:outline-none focus-visible:outline-none focus-visible:ring-0 ${actionButtonTone}`}
               >
                 {loading ? (
                   <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
                 ) : (
                   <>
-                    {job.email ? <Lock size={28} /> : null}
-                    {job.email ? 'Send Verification Code' : 'Print Now'}
+                    {job.email ? <Lock size={28} /> : <Sparkles size={28} />}
+                    {actionLabel}
                   </>
                 )}
               </button>
@@ -221,7 +249,7 @@ export function Confirm() {
             <div className="w-full flex gap-12 items-start justify-center mt-4">
               <div className="w-96 flex flex-col">
                 <div className="mb-6">
-                  <p className="text-xl text-gray-600 mb-2">Code sent to:</p>
+                  <p className="text-xl text-sky-600 mb-2 font-medium">Code sent to:</p>
                   <p className="text-2xl font-bold text-gray-900">{maskEmail(job.email!)}</p>
                 </div>
 
@@ -230,20 +258,21 @@ export function Confirm() {
                     {otp.padEnd(6, '_')}
                   </span>
                 </div>
-                
+
                 <div className="h-12 mb-4">
                   {error && (
-                    <span className="text-xl font-bold text-red-600">{error}</span>
+                    <span className="text-xl font-bold text-red-600 flex items-center gap-2"><ShieldCheck size={20} />{error}</span>
                   )}
                 </div>
 
                 <button
+                  type="button"
                   onClick={handleVerifyOtpAndPrint}
                   disabled={otp.length !== 6 || loading}
-                  className={`h-16 w-full rounded-xl text-xl font-bold flex items-center justify-center shadow-md transition-opacity ${
-                    otp.length === 6 && !loading 
-                      ? 'bg-gradient-to-r from-rose-500 to-orange-500 border-0 text-white active:opacity-80' 
-                      : 'bg-gray-300 text-gray-500 opacity-70'
+                  className={`h-16 w-full rounded-xl text-xl font-bold flex items-center justify-center shadow-md border-2 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0 ${
+                    otp.length === 6 && !loading
+                      ? 'bg-gradient-to-r from-rose-500 to-orange-500 border-rose-600 text-white shadow-lg shadow-rose-200 active:brightness-95'
+                      : 'bg-gray-200 border-gray-300 text-gray-500 opacity-90'
                   }`}
                 >
                   {loading ? (
@@ -258,27 +287,31 @@ export function Confirm() {
                 {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
                   <button
                     key={num}
+                    type="button"
                     onClick={() => handlePadClick(num.toString())}
-                    className="h-20 bg-white border border-gray-200 rounded-xl shadow-sm text-3xl font-bold text-gray-900 active:bg-gray-100 flex items-center justify-center"
+                    className="h-20 bg-white border border-gray-200 rounded-xl shadow-sm text-3xl font-bold text-gray-900 active:bg-gray-100 flex items-center justify-center focus:outline-none focus-visible:outline-none focus-visible:ring-0"
                   >
                     {num}
                   </button>
                 ))}
                 <button
+                  type="button"
                   onClick={handleClear}
-                  className="h-20 bg-white border border-gray-200 rounded-xl shadow-sm text-xl font-bold text-gray-700 active:bg-gray-100 flex items-center justify-center"
+                  className="h-20 bg-white border border-gray-200 rounded-xl shadow-sm text-xl font-bold text-rose-500 active:bg-gray-100 flex items-center justify-center focus:outline-none focus-visible:outline-none focus-visible:ring-0"
                 >
                   Clear
                 </button>
                 <button
+                  type="button"
                   onClick={() => handlePadClick('0')}
-                  className="h-20 bg-white border border-gray-200 rounded-xl shadow-sm text-3xl font-bold text-gray-900 active:bg-gray-100 flex items-center justify-center"
+                  className="h-20 bg-white border border-gray-200 rounded-xl shadow-sm text-3xl font-bold text-gray-900 active:bg-gray-100 flex items-center justify-center focus:outline-none focus-visible:outline-none focus-visible:ring-0"
                 >
                   0
                 </button>
                 <button
+                  type="button"
                   onClick={handleDelete}
-                  className="h-20 bg-white border border-gray-200 rounded-xl shadow-sm text-gray-700 active:bg-gray-100 flex items-center justify-center"
+                  className="h-20 bg-white border border-gray-200 rounded-xl shadow-sm text-sky-600 active:bg-gray-100 flex items-center justify-center focus:outline-none focus-visible:outline-none focus-visible:ring-0"
                 >
                   <Delete size={36} />
                 </button>

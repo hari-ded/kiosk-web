@@ -4,6 +4,7 @@ import { checkJobStatus } from '../api';
 import { PrintJob } from '../types';
 import { Layout } from '../components/Layout';
 import { Printer, CheckCircle2, XCircle, Home } from 'lucide-react';
+import { playSound, speak } from '../utils/audio';
 
 const SUCCESS_STATES = ['printed', 'completed', 'complete', 'success', 'done', 'finished'];
 const FAILURE_STATES = ['failed', 'failure', 'error', 'errored', 'aborted', 'cancelled', 'canceled'];
@@ -27,12 +28,28 @@ export function Status() {
 
   const mountedRef = useRef(true);
   const statusRef = useRef(status);
+  const playedPrintingRef = useRef(false);
+  const playedCompleteRef = useRef(false);
   const pollTimeoutRef = useRef<number | null>(null);
   const progressIntervalRef = useRef<number | null>(null);
   const completionTimeoutRef = useRef<number | null>(null);
 
   useEffect(() => {
     statusRef.current = status;
+  }, [status]);
+
+  useEffect(() => {
+    if (status === 'printing' && !playedPrintingRef.current) {
+      playedPrintingRef.current = true;
+      playSound('printingWait', 0.8);
+      speak('Printing in progress. Please wait.');
+    }
+
+    if (status === 'completed' && !playedCompleteRef.current) {
+      playedCompleteRef.current = true;
+      playSound('printComplete', 0.85);
+      speak('Print complete. Please collect your documents.');
+    }
   }, [status]);
 
   useEffect(() => {
@@ -58,6 +75,11 @@ export function Status() {
       }
     };
 
+    const returnHome = () => {
+      sessionStorage.setItem('arox_returning_home_audio', 'thank_you');
+      navigate('/', { replace: true });
+    };
+
     const schedulePoll = (delay: number) => {
       if (!mountedRef.current) return;
       if (pollTimeoutRef.current) clearTimeout(pollTimeoutRef.current);
@@ -79,7 +101,7 @@ export function Status() {
           clearTimers();
           completionTimeoutRef.current = window.setTimeout(() => {
             if (mountedRef.current) {
-              navigate('/', { replace: true });
+              returnHome();
             }
           }, 5000);
           return;
@@ -127,7 +149,7 @@ export function Status() {
     return (
       <Layout>
         <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin w-16 h-16 border-8 border-gray-200 border-t-blue-600 rounded-full"></div>
+          <div className="animate-spin w-16 h-16 border-8 border-gray-200 border-t-rose-600 rounded-full"></div>
         </div>
       </Layout>
     );
@@ -138,8 +160,8 @@ export function Status() {
       <div className="flex-1 flex flex-col items-center justify-center pb-16">
         {status === 'processing' && (
           <div className="flex flex-col items-center max-w-2xl text-center">
-            <div className="w-32 h-32 bg-gray-50 text-gray-400 rounded-full flex items-center justify-center mb-8 relative">
-              <div className="absolute inset-0 rounded-full border-8 border-gray-200 border-t-rose-500 animate-spin"></div>
+            <div className="w-32 h-32 bg-gradient-to-br from-sky-50 to-cyan-100 text-sky-500 rounded-full flex items-center justify-center mb-8 relative shadow-lg shadow-sky-100">
+              <div className="absolute inset-0 rounded-full border-8 border-sky-100 border-t-sky-500 animate-spin"></div>
               <Printer size={48} className="relative z-10" />
             </div>
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
@@ -153,7 +175,7 @@ export function Status() {
 
         {status === 'printing' && (
           <div className="flex flex-col items-center max-w-2xl text-center">
-            <div className="w-32 h-32 bg-rose-50 text-rose-600 rounded-full flex items-center justify-center mb-8 relative">
+            <div className="w-32 h-32 bg-gradient-to-br from-rose-50 to-orange-100 text-rose-600 rounded-full flex items-center justify-center mb-8 relative shadow-lg shadow-rose-100">
               <div className="absolute inset-0 rounded-full border-8 border-rose-200"></div>
               <div
                 className="absolute inset-0 rounded-full border-8 border-rose-600 transition-all duration-500"
@@ -175,7 +197,7 @@ export function Status() {
 
         {status === 'completed' && (
           <div className="flex flex-col items-center max-w-2xl text-center">
-            <div className="w-32 h-32 bg-green-50 text-green-600 rounded-full flex items-center justify-center mb-8">
+            <div className="w-32 h-32 bg-gradient-to-br from-emerald-50 to-lime-100 text-emerald-600 rounded-full flex items-center justify-center mb-8 shadow-lg shadow-emerald-100">
               <CheckCircle2 size={80} />
             </div>
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
@@ -185,8 +207,12 @@ export function Status() {
               Please collect your documents from the tray below.
             </p>
             <button
-              onClick={() => navigate('/')}
-              className="w-full h-20 bg-green-600 text-white text-2xl font-bold rounded-xl shadow-md active:bg-green-700 flex items-center justify-center gap-4 transition-colors"
+              type="button"
+              onClick={() => {
+                sessionStorage.setItem('arox_returning_home_audio', 'thank_you');
+                navigate('/');
+              }}
+              className="w-full h-20 bg-gradient-to-r from-emerald-500 to-lime-500 text-white text-2xl font-bold rounded-xl shadow-md shadow-emerald-200 active:brightness-95 flex items-center justify-center gap-4 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0"
             >
               <Home size={32} />
               Return Home
@@ -196,7 +222,7 @@ export function Status() {
 
         {status === 'failed' && (
           <div className="flex flex-col items-center max-w-2xl text-center">
-            <div className="w-32 h-32 bg-red-50 text-red-600 rounded-full flex items-center justify-center mb-8">
+            <div className="w-32 h-32 bg-gradient-to-br from-red-50 to-rose-100 text-red-600 rounded-full flex items-center justify-center mb-8 shadow-lg shadow-red-100">
               <XCircle size={80} />
             </div>
             <h2 className="text-4xl font-bold text-gray-900 mb-4">
@@ -206,8 +232,9 @@ export function Status() {
               There was a problem completing your print job. Please try again or request support.
             </p>
             <button
+              type="button"
               onClick={() => navigate('/')}
-              className="w-full h-20 bg-red-600 text-white text-2xl font-bold rounded-xl shadow-md active:bg-red-700 flex items-center justify-center gap-4 transition-colors"
+              className="w-full h-20 bg-gradient-to-r from-red-500 to-rose-600 text-white text-2xl font-bold rounded-xl shadow-md shadow-red-200 active:brightness-95 flex items-center justify-center gap-4 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0"
             >
               <Home size={32} />
               Return Home
