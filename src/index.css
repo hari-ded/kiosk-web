@@ -5,14 +5,25 @@
 }
 
 @layer base {
+  html,
+  body,
+  #root {
+    width: 100%;
+    height: 100%;
+  }
+
   body {
-    @apply m-0 p-0 overflow-hidden w-screen h-screen bg-gray-50 text-gray-900 select-none;
+    @apply m-0 p-0 overflow-hidden bg-gray-50 text-gray-900 select-none;
     touch-action: manipulation;
     -webkit-text-size-adjust: 100%;
   }
 
-  /* Target exact 1280x800 canvas as requested */
+  /* Keep the kiosk canvas centered, but let smaller tablet browsers fit it. */
   #root {
-    @apply w-[1280px] h-[800px] overflow-hidden relative mx-auto bg-white;
+    @apply overflow-hidden relative mx-auto bg-white;
+    max-width: 1280px;
+    max-height: 800px;
+    min-width: 320px;
+    min-height: 568px;
   }
 }
