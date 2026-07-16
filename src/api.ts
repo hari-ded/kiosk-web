@@ -1,6 +1,6 @@
 import { PrintJob, Consumables } from './types';
 
-const API_URL = import.meta.env.VITE_API_URL || '/api';
+const API_URL = import.meta.env.VITE_API_URL || 'https://arox-api-993539509814.asia-south1.run.app/api';
 const KIOSK_ID = import.meta.env.VITE_KIOSK_ID || '1';
 
 const defaultHeaders = {
