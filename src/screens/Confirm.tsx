@@ -1,10 +1,11 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { fetchConsumables, requestOtp, verifyOtp, releaseJob, sendAlert } from '../api';
+import { fetchConsumables, requestOtp, releaseJob, sendAlert } from '../api';
 import { PrintJob } from '../types';
 import { Layout } from '../components/Layout';
-import { ArrowLeft, Delete, FileText, Lock, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowUpDown, Clock3, Copy, FileText, Hash, Layers3, LayoutGrid, Lock, RotateCw, ShieldCheck, Sparkles } from 'lucide-react';
 import { playSound } from '../utils/audio';
+import { formatSeconds, summarizePrintJob } from '../utils/printJob';
 
 function readStoredJob() {
   try {
@@ -15,13 +16,29 @@ function readStoredJob() {
   }
 }
 
+interface StatCardProps {
+  icon: ReactNode;
+  label: string;
+  value: string;
+}
+
+function StatCard({ icon, label, value }: StatCardProps) {
+  return (
+    <div className="rounded-2xl p-4 text-center kiosk-panel-strong">
+      <div className="w-12 h-12 mx-auto mb-3 rounded-full flex items-center justify-center kiosk-circle-sky text-white">
+        {icon}
+      </div>
+      <div className="text-sm font-bold uppercase tracking-[0.2em] kiosk-copy mb-1">{label}</div>
+      <div className="text-lg font-bold kiosk-heading break-words text-center">{value}</div>
+    </div>
+  );
+}
+
 export function Confirm() {
   const navigate = useNavigate();
   const location = useLocation();
   const job = (location.state?.job as PrintJob | undefined) || readStoredJob();
 
-  const [otpMode, setOtpMode] = useState(false);
-  const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const previousErrorRef = useRef<string | null>(null);
@@ -50,31 +67,11 @@ export function Confirm() {
     );
   }
 
-  const maskEmail = (email: string) => {
-    const [user, domain] = email.split('@');
-    if (!domain) return email;
-    if (user.length <= 3) return `***@${domain}`;
-    return `${user.charAt(0)}***${user.slice(-2)}@${domain}`;
-  };
+  const summary = summarizePrintJob(job);
+  const colorLabel = job.color ? 'Color' : 'Black & White';
+  const etaLabel = `~${formatSeconds(summary.totalWaitSeconds)}`;
 
-  const handlePadClick = (val: string) => {
-    setError(null);
-    if (otp.length < 6) {
-      setOtp(prev => prev + val);
-    }
-  };
-
-  const handleDelete = () => {
-    setError(null);
-    setOtp(prev => prev.slice(0, -1));
-  };
-
-  const handleClear = () => {
-    setError(null);
-    setOtp('');
-  };
-
-  const checkConsumablesAndPrint = async (onSuccess: () => Promise<void>) => {
+  const handleInitialAction = async () => {
     setLoading(true);
     setError(null);
 
@@ -94,7 +91,11 @@ export function Confirm() {
       }
 
       if (alertType) {
-        await sendAlert(alertType, 'print', message, { required_units: required, remaining_paper: consumables.paper_remaining, remaining_toner: consumables.toner_remaining });
+        await sendAlert(alertType, 'print', message, {
+          required_units: required,
+          remaining_paper: consumables.paper_remaining,
+          remaining_toner: consumables.toner_remaining
+        });
         navigate('/low-supply', {
           state: {
             source: 'print',
@@ -108,66 +109,36 @@ export function Confirm() {
         return;
       }
 
-      await onSuccess();
+      if (job.email) {
+        const success = await requestOtp(job.pickup_code);
+        if (success) {
+          navigate(`/otp/${job.id}`, { state: { job } });
+          return;
+        }
+
+        const releaseSuccess = await releaseJob(job.pickup_code);
+        if (releaseSuccess) {
+          navigate(`/status/${job.id}`, { state: { job } });
+          return;
+        }
+
+        setError('Failed to start code verification.');
+        setLoading(false);
+        return;
+      }
+
+      const releaseSuccess = await releaseJob(job.pickup_code);
+      if (releaseSuccess) {
+        navigate(`/status/${job.id}`, { state: { job } });
+      } else {
+        setError('Failed to release job.');
+        setLoading(false);
+      }
     } catch {
       setError('An error occurred. Please try again.');
       setLoading(false);
     }
   };
-
-  const handleInitialAction = async () => {
-    await checkConsumablesAndPrint(async () => {
-      if (job.email) {
-        const success = await requestOtp(job.pickup_code);
-        if (success) {
-          setOtpMode(true);
-          setLoading(false);
-        } else {
-          const releaseSuccess = await releaseJob(job.pickup_code);
-          if (releaseSuccess) {
-            navigate(`/status/${job.id}`, { state: { job } });
-          } else {
-            setError('Failed to release job.');
-          }
-          setLoading(false);
-        }
-      } else {
-        const releaseSuccess = await releaseJob(job.pickup_code);
-        if (releaseSuccess) {
-          navigate(`/status/${job.id}`, { state: { job } });
-        } else {
-          setError('Failed to release job.');
-        }
-        setLoading(false);
-      }
-    });
-  };
-
-  const handleVerifyOtpAndPrint = async () => {
-    if (otp.length !== 6) return;
-
-    await checkConsumablesAndPrint(async () => {
-      const valid = await verifyOtp(job.pickup_code, otp);
-      if (valid) {
-        const releaseSuccess = await releaseJob(job.pickup_code);
-        if (releaseSuccess) {
-          navigate(`/status/${job.id}`, { state: { job } });
-        } else {
-          setError('OTP verified, but printing failed to start.');
-          setLoading(false);
-        }
-      } else {
-        setError('Invalid OTP code. Please try again.');
-        setLoading(false);
-      }
-    });
-  };
-
-  const detailTone = otpMode ? 'kiosk-text-rose' : 'kiosk-text-sky';
-  const actionButtonTone = loading
-    ? 'kiosk-action-disabled'
-    : 'kiosk-primary-rose disabled:opacity-75 disabled:cursor-not-allowed';
-  const actionLabel = job.email ? 'Confirm Details & Send Code' : 'Confirm Details & Print';
 
   return (
     <Layout>
@@ -176,137 +147,66 @@ export function Confirm() {
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="absolute left-0 h-16 px-6 flex items-center gap-3 rounded-xl shadow-sm text-xl font-bold focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-muted-button"
+            className="absolute left-0 h-16 px-8 flex items-center gap-3 rounded-xl shadow-sm text-xl font-bold focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-muted-button"
           >
             <ArrowLeft size={28} />
             Cancel
           </button>
-          <h2 className={`text-3xl font-bold w-full text-center ${detailTone}`}>
-            {otpMode ? 'Verify Identity' : 'Confirm Print Job'}
+          <h2 className="text-3xl font-bold w-full text-center kiosk-heading">
+            Confirm Print Job
           </h2>
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center gap-8">
-          <div className="w-full rounded-2xl p-6 flex items-center justify-between kiosk-panel">
-            <div className="flex items-center gap-6">
-              <div className="flex items-center justify-center w-16 h-16 rounded-full text-white shadow-md kiosk-circle-rose">
+          <div className="w-full max-w-5xl mx-auto rounded-[2rem] p-8 md:p-10 text-center kiosk-panel-strong">
+            <div className="flex flex-col items-center justify-center gap-2 mb-4">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center text-white shadow-md kiosk-circle-rose">
                 <FileText size={32} />
               </div>
-              <div className="flex flex-col">
-                <h3 className="text-2xl font-bold truncate max-w-lg kiosk-heading">
-                  {job.filename}
-                </h3>
-                <p className="text-lg font-medium kiosk-copy">
-                  <span className="kiosk-text-sky">{job.pages} Pages</span>
-                  {'  -  '}
-                  <span className="kiosk-text-rose">{job.copies} Copies</span>
-                  {'  -  '}
-                  <span className={job.color ? 'kiosk-text-emerald' : 'kiosk-copy'}>{job.color ? 'Color' : 'Black & White'}</span>
-                  {'  -  '}
-                  <span className="kiosk-text-amber">{job.pages * job.copies} Total</span>
-                </p>
-              </div>
+              <h3 className="text-2xl font-bold kiosk-heading">{job.filename}</h3>
+              <p className="text-lg font-medium kiosk-copy">Job {job.pickup_code}</p>
+            </div>
+
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mt-8">
+              <StatCard icon={<FileText size={22} />} label="Filename" value={job.filename} />
+              <StatCard icon={<Hash size={22} />} label="Pickup Code" value={job.pickup_code} />
+              <StatCard icon={<ArrowUpDown size={22} />} label="Orientation" value={summary.orientation} />
+              <StatCard icon={<LayoutGrid size={22} />} label="Pages / Sheet" value={`${summary.pagesPerSheet}`} />
+              <StatCard icon={<RotateCw size={22} />} label="Duplex" value={summary.duplex ? 'Double-sided' : 'Single-sided'} />
+              <StatCard icon={<Copy size={22} />} label="Copies" value={`${summary.copies}`} />
+              <StatCard icon={<Layers3 size={22} />} label="Total Sheets" value={`${summary.totalSheets}`} />
+              <StatCard icon={<Clock3 size={22} />} label="ETA" value={etaLabel} />
+            </div>
+
+            <div className="mt-6 text-base kiosk-copy">
+              {colorLabel} printing • {formatSeconds(summary.printSeconds)} print time
             </div>
           </div>
 
-          {!otpMode ? (
-            <div className="w-full flex flex-col items-center mt-8">
-              {error && (
-                <div className="mb-6 text-xl font-bold text-red-600 flex items-center gap-3">
-                  <ShieldCheck size={24} />
-                  {error}
-                </div>
-              )}
-
-              <button
-                type="button"
-                onClick={handleInitialAction}
-                disabled={loading}
-                className={`w-full max-w-2xl h-20 border-2 text-2xl font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-4 focus:outline-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-75 ${actionButtonTone}`}
-              >
-                {loading ? (
-                  <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin kiosk-spinner-white"></div>
-                ) : (
-                  <>
-                    {job.email ? <Lock size={28} /> : <Sparkles size={28} />}
-                    {actionLabel}
-                  </>
-                )}
-              </button>
-            </div>
-          ) : (
-            <div className="w-full flex gap-12 items-start justify-center mt-4">
-              <div className="w-96 flex flex-col">
-                <div className="mb-6">
-                  <p className="text-xl kiosk-text-sky mb-2 font-medium">Code sent to:</p>
-                  <p className="text-2xl font-bold kiosk-heading">{maskEmail(job.email!)}</p>
-                </div>
-
-                <div className={`h-24 rounded-2xl flex items-center justify-center shadow-inner mb-4 transition-colors kiosk-panel ${error ? 'kiosk-soft-red' : 'kiosk-input'}`}>
-                  <span className="text-5xl font-mono font-bold tracking-[0.5em] ml-[0.25em] kiosk-heading">
-                    {otp.padEnd(6, '_')}
-                  </span>
-                </div>
-
-                <div className="h-12 mb-4">
-                  {error && (
-                    <span className="text-xl font-bold kiosk-text-red flex items-center gap-2"><ShieldCheck size={20} />{error}</span>
-                  )}
-                </div>
-
-                <button
-                  type="button"
-                  onClick={handleVerifyOtpAndPrint}
-                  disabled={otp.length !== 6 || loading}
-                  className={`h-16 w-full rounded-xl text-xl font-bold flex items-center justify-center gap-3 shadow-md border-2 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-75 ${actionButtonTone}`}
-                >
-                  {loading ? (
-                    <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin kiosk-spinner-white"></div>
-                  ) : (
-                    'Verify & Print'
-                  )}
-                </button>
-              </div>
-
-              <div className="w-80 grid grid-cols-3 gap-4">
-                {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
-                  <button
-                    key={num}
-                    type="button"
-                    onClick={() => handlePadClick(num.toString())}
-                    className="h-20 rounded-xl shadow-sm text-3xl font-bold flex items-center justify-center focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-key"
-                  >
-                    {num}
-                  </button>
-                ))}
-                <button
-                  type="button"
-                  onClick={handleClear}
-                  className="h-20 rounded-xl shadow-sm text-xl font-bold flex items-center justify-center focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-key kiosk-text-rose"
-                >
-                  Clear
-                </button>
-                <button
-                  type="button"
-                  onClick={() => handlePadClick('0')}
-                  className="h-20 rounded-xl shadow-sm text-3xl font-bold flex items-center justify-center focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-key"
-                >
-                  0
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  className="h-20 rounded-xl shadow-sm flex items-center justify-center focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-key kiosk-text-sky"
-                >
-                  <Delete size={36} />
-                </button>
-              </div>
+          {error && (
+            <div className="text-xl font-bold kiosk-text-red flex items-center gap-3 text-center">
+              <ShieldCheck size={24} />
+              {error}
             </div>
           )}
+
+          <button
+            type="button"
+            onClick={handleInitialAction}
+            disabled={loading}
+            className={`w-full max-w-2xl h-20 border-2 text-2xl font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-4 focus:outline-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-75 ${loading ? 'kiosk-action-disabled' : 'kiosk-primary-rose'}`}
+          >
+            {loading ? (
+              <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin kiosk-spinner-white"></div>
+            ) : (
+              <>
+                {job.email ? <Lock size={28} /> : <Sparkles size={28} />}
+                {job.email ? 'Confirm Details & Send Code' : 'Confirm Details & Print'}
+              </>
+            )}
+          </button>
         </div>
       </div>
     </Layout>
   );
 }
-
-

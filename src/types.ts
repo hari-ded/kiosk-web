@@ -4,6 +4,9 @@ export interface PrintJob {
   pages: number;
   copies: number;
   color: boolean;
+  orientation?: string;
+  pages_per_sheet?: number;
+  duplex?: boolean;
   status: string;
   pickup_code: string;
   estimated_time_seconds: number;

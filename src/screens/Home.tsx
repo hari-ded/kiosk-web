@@ -58,11 +58,26 @@ export function Home() {
   return (
     <Layout>
       <div className="flex-1 flex flex-col items-center justify-center">
-        <h2 className="text-3xl font-bold mb-16 text-center max-w-2xl kiosk-heading">
-          How would you like to retrieve your print job?
-        </h2>
+        <div className="mb-5 text-center">
+          <h2 className="text-3xl font-bold kiosk-heading">
+            Print anything <span
+              style={{
+                backgroundImage: 'linear-gradient(90deg, #0284c7 0%, #facc15 33%, #f97316 66%, #ec4899 100%)',
+                WebkitBackgroundClip: 'text',
+                backgroundClip: 'text',
+                WebkitTextFillColor: 'transparent'
+              }}
+            >
+              in seconds
+            </span>
+          </h2>
+        </div>
 
-        <div className="flex gap-8 w-full max-w-4xl">
+        <h3 className="text-3xl font-bold mb-16 text-center max-w-2xl kiosk-heading">
+          How would you like to retrieve your print job?
+        </h3>
+
+        <div className="flex gap-10 w-full max-w-4xl">
           <button
             type="button"
             onClick={() => navigate('/scan')}

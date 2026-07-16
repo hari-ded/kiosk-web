@@ -69,7 +69,7 @@ export function ManualCode() {
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="absolute left-0 h-16 px-6 flex items-center gap-3 rounded-xl shadow-sm text-xl font-bold focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-muted-button"
+            className="absolute left-0 h-16 px-8 flex items-center gap-3 rounded-xl shadow-sm text-xl font-bold focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-muted-button"
           >
             <ArrowLeft size={28} />
             Back
@@ -81,12 +81,15 @@ export function ManualCode() {
 
         <div className="w-full grid grid-cols-1 lg:grid-cols-[minmax(0,24rem)_minmax(0,24rem)] gap-10 items-center justify-center place-items-center">
           <div className="w-full max-w-[24rem] flex flex-col items-stretch">
-            <div
-              className={`h-24 rounded-3xl flex items-center justify-center shadow-[0_12px_30px_rgba(15,23,42,0.08)] mb-4 transition-colors kiosk-panel ${error ? 'kiosk-soft-red' : 'kiosk-input'}`}
-            >
-              <span className="text-4xl md:text-5xl font-mono font-bold tracking-[0.32em] pl-[0.32em] kiosk-heading">
-                ARX-{code.padEnd(6, '_')}
+            <div className="flex items-end justify-center gap-3 mb-4">
+              <span className="text-4xl md:text-5xl font-mono font-bold kiosk-heading leading-none pb-3">
+                ARX-
               </span>
+              <div className={`h-24 flex-1 rounded-3xl flex items-center justify-center shadow-[0_12px_30px_rgba(15,23,42,0.08)] transition-colors kiosk-panel ${error ? 'kiosk-soft-red' : 'kiosk-input'}`}>
+                <span className="text-4xl md:text-5xl font-mono font-bold tracking-[0.32em] pl-[0.32em] kiosk-heading">
+                  {code.padEnd(6, '_')}
+                </span>
+              </div>
             </div>
 
             <div className="min-h-8 mb-8 text-center">
@@ -120,7 +123,7 @@ export function ManualCode() {
                 key={num}
                 type="button"
                 onClick={() => handlePadClick(num.toString())}
-                className={buttonBase}
+                className={`${buttonBase} text-3xl font-extrabold kiosk-heading`}
               >
                 {num}
               </button>
@@ -129,7 +132,7 @@ export function ManualCode() {
             <button
               type="button"
               onClick={() => handlePadClick('0')}
-              className={buttonBase}
+              className={`${buttonBase} text-3xl font-extrabold kiosk-heading`}
             >
               0
             </button>
@@ -146,6 +149,3 @@ export function ManualCode() {
     </Layout>
   );
 }
-
-
-

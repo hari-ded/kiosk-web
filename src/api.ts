@@ -12,6 +12,15 @@ function normalizePickupCode(code: string) {
   return /^\d{6}$/.test(code) ? `ARX-${code}` : code;
 }
 
+function parseBoolean(value: any) {
+  if (typeof value === 'boolean') return value;
+  if (typeof value === 'string') {
+    return ['true', '1', 'yes', 'double', 'duplex', 'two-sided'].includes(value.toLowerCase());
+  }
+  if (typeof value === 'number') return value !== 0;
+  return false;
+}
+
 async function readJsonResponse<T>(res: Response): Promise<T | null> {
   try {
     return (await res.json()) as T;
@@ -61,6 +70,9 @@ export async function validateJobCode(code: string): Promise<{ job?: PrintJob, e
         pages: Number(data.pages) || 1,
         copies: Number(data.copies) || 1,
         color: Boolean(data.color),
+        orientation: data.orientation || data.print_orientation || 'Portrait',
+        pages_per_sheet: Number(data.pages_per_sheet ?? data.page_per_sheet ?? 1) || 1,
+        duplex: parseBoolean(data.duplex ?? data.double_sided ?? data.is_duplex ?? data.sides),
         status: data.status || 'unknown',
         pickup_code: normalizePickupCode(code),
         estimated_time_seconds: Number(data.estimated_time_seconds) || 0,

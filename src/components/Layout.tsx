@@ -35,7 +35,7 @@ export function Layout({ children }: LayoutProps) {
 
       {inactivity.warningVisible && (
         <div className="absolute inset-0 z-50 flex items-center justify-center p-6 kiosk-overlay kiosk-blur">
-          <div className="w-full max-w-2xl rounded-3xl border p-8 md:p-10 text-center kiosk-panel-strong">
+          <div className="w-full max-w-2xl rounded-3xl border p-8 md:p-10 text-center flex flex-col items-center kiosk-panel-strong">
             <div className="w-20 h-20 mx-auto mb-6 rounded-full text-white flex items-center justify-center kiosk-circle-amber">
               <Clock3 size={40} />
             </div>
@@ -45,11 +45,11 @@ export function Layout({ children }: LayoutProps) {
             <p className="text-xl text-gray-600 mb-8">
               Returning to home in {inactivity.warningSecondsRemaining} seconds.
             </p>
-            <div className="flex gap-4 justify-center">
+            <div className="flex gap-6 justify-center">
               <button
                 type="button"
                 onClick={inactivity.extendSession}
-                className="h-16 px-8 rounded-xl text-xl font-bold shadow-md flex items-center justify-center gap-3 focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-primary-sky"
+                className="h-16 px-10 rounded-xl text-xl font-bold shadow-md flex items-center justify-center gap-3 focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-primary-sky"
               >
                 <ArrowRight size={24} />
                 Yes, keep going
@@ -57,7 +57,7 @@ export function Layout({ children }: LayoutProps) {
               <button
                 type="button"
                 onClick={inactivity.goHome}
-                className="h-16 px-8 rounded-xl text-xl font-bold shadow-sm flex items-center justify-center focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-muted-button"
+                className="h-16 px-10 rounded-xl text-xl font-bold shadow-sm flex items-center justify-center focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-muted-button"
               >
                 Go Home
               </button>

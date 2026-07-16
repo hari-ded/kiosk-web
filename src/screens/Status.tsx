@@ -5,6 +5,7 @@ import { PrintJob } from '../types';
 import { Layout } from '../components/Layout';
 import { Printer, CheckCircle2, XCircle, Home } from 'lucide-react';
 import { playSound } from '../utils/audio';
+import { summarizePrintJob } from '../utils/printJob';
 
 const SUCCESS_STATES = ['printed', 'completed', 'complete', 'success', 'done', 'finished'];
 const FAILURE_STATES = ['failed', 'failure', 'error', 'errored', 'aborted', 'cancelled', 'canceled'];
@@ -22,6 +23,8 @@ export function Status() {
   const navigate = useNavigate();
   const location = useLocation();
   const job = (location.state?.job as PrintJob | undefined) || readStoredJob();
+  const summary = job ? summarizePrintJob(job) : null;
+  const totalWaitSeconds = summary?.totalWaitSeconds ?? 0;
 
   const [status, setStatus] = useState<'processing' | 'printing' | 'completed' | 'failed'>('processing');
   const [progress, setProgress] = useState(0);
@@ -32,7 +35,9 @@ export function Status() {
   const playedCompleteRef = useRef(false);
   const pollTimeoutRef = useRef<number | null>(null);
   const progressIntervalRef = useRef<number | null>(null);
-  const completionTimeoutRef = useRef<number | null>(null);
+  const completionDelayRef = useRef<number | null>(null);
+  const completionReturnRef = useRef<number | null>(null);
+  const completionScheduledRef = useRef(false);
 
   useEffect(() => {
     statusRef.current = status;
@@ -51,7 +56,7 @@ export function Status() {
   }, [status]);
 
   useEffect(() => {
-    if (!job) {
+    if (!job || !summary) {
       navigate('/', { replace: true });
       return;
     }
@@ -67,9 +72,13 @@ export function Status() {
         clearInterval(progressIntervalRef.current);
         progressIntervalRef.current = null;
       }
-      if (completionTimeoutRef.current) {
-        clearTimeout(completionTimeoutRef.current);
-        completionTimeoutRef.current = null;
+      if (completionDelayRef.current) {
+        clearTimeout(completionDelayRef.current);
+        completionDelayRef.current = null;
+      }
+      if (completionReturnRef.current) {
+        clearTimeout(completionReturnRef.current);
+        completionReturnRef.current = null;
       }
     };
 
@@ -86,22 +95,42 @@ export function Status() {
       }, delay);
     };
 
+    const scheduleCompletion = () => {
+      if (completionScheduledRef.current) return;
+      completionScheduledRef.current = true;
+
+      if (pollTimeoutRef.current) {
+        clearTimeout(pollTimeoutRef.current);
+        pollTimeoutRef.current = null;
+      }
+      if (progressIntervalRef.current) {
+        clearInterval(progressIntervalRef.current);
+        progressIntervalRef.current = null;
+      }
+
+      setStatus('printing');
+      setProgress(100);
+
+      completionDelayRef.current = window.setTimeout(() => {
+        if (!mountedRef.current) return;
+        setStatus('completed');
+        completionReturnRef.current = window.setTimeout(() => {
+          if (mountedRef.current) {
+            returnHome();
+          }
+        }, 5000);
+      }, Math.round(totalWaitSeconds * 1000));
+    };
+
     const pollStatus = async () => {
       try {
         const currentStatus = await checkJobStatus(job.id);
         const lowerStatus = currentStatus.toLowerCase();
 
-        if (!mountedRef.current) return;
+        if (!mountedRef.current || completionScheduledRef.current) return;
 
         if (SUCCESS_STATES.includes(lowerStatus)) {
-          setStatus('completed');
-          setProgress(100);
-          clearTimers();
-          completionTimeoutRef.current = window.setTimeout(() => {
-            if (mountedRef.current) {
-              returnHome();
-            }
-          }, 5000);
+          scheduleCompletion();
           return;
         }
 
@@ -122,7 +151,7 @@ export function Status() {
 
         schedulePoll(document.hidden ? 15000 : 3000);
       } catch {
-        if (mountedRef.current) {
+        if (mountedRef.current && !completionScheduledRef.current) {
           schedulePoll(5000);
         }
       }
@@ -130,7 +159,7 @@ export function Status() {
 
     progressIntervalRef.current = window.setInterval(() => {
       setProgress(prev => {
-        if (prev >= 90 || statusRef.current !== 'printing') return prev;
+        if (completionScheduledRef.current || prev >= 90 || statusRef.current !== 'printing') return prev;
         return Math.min(90, prev + Math.floor(Math.random() * 10) + 5);
       });
     }, 1000);
@@ -141,7 +170,7 @@ export function Status() {
       mountedRef.current = false;
       clearTimers();
     };
-  }, [job, navigate]);
+  }, [job, navigate, totalWaitSeconds]);
 
   if (!job) {
     return (
@@ -243,3 +272,6 @@ export function Status() {
     </Layout>
   );
 }
+
+
+
