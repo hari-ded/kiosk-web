@@ -16,13 +16,13 @@ export function Layout({ children }: LayoutProps) {
   const showHelp = location.pathname !== '/agent' && onHelp;
 
   return (
-    <div className="w-full h-full p-6 md:p-8 flex flex-col relative bg-gray-50 overflow-hidden">
+    <div className="w-full h-full p-6 md:p-8 flex flex-col relative overflow-hidden kiosk-shell">
       <header className="h-16 flex items-center justify-end shrink-0 mb-6 md:mb-8">
         {showHelp && (
           <button
             type="button"
             onClick={onHelp}
-            className="w-16 h-16 flex items-center justify-center rounded-full bg-white shadow-sm border border-gray-200 text-gray-600 active:bg-gray-100 focus:outline-none focus-visible:outline-none"
+            className="w-16 h-16 flex items-center justify-center rounded-full shadow-sm border focus:outline-none focus-visible:outline-none kiosk-muted-button"
           >
             <HelpCircle size={32} />
           </button>
@@ -34,9 +34,9 @@ export function Layout({ children }: LayoutProps) {
       </main>
 
       {inactivity.warningVisible && (
-        <div className="absolute inset-0 z-50 flex items-center justify-center bg-slate-950/50 backdrop-blur-sm p-6">
-          <div className="w-full max-w-2xl rounded-3xl border border-white/70 bg-white shadow-2xl shadow-slate-900/20 p-8 md:p-10 text-center">
-            <div className="w-20 h-20 mx-auto mb-6 rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-white flex items-center justify-center shadow-lg shadow-amber-200">
+        <div className="absolute inset-0 z-50 flex items-center justify-center p-6 kiosk-overlay kiosk-blur">
+          <div className="w-full max-w-2xl rounded-3xl border p-8 md:p-10 text-center kiosk-panel-strong">
+            <div className="w-20 h-20 mx-auto mb-6 rounded-full text-white flex items-center justify-center kiosk-circle-amber">
               <Clock3 size={40} />
             </div>
             <h3 className="text-3xl md:text-4xl font-extrabold text-gray-900 mb-3">
@@ -49,7 +49,7 @@ export function Layout({ children }: LayoutProps) {
               <button
                 type="button"
                 onClick={inactivity.extendSession}
-                className="h-16 px-8 rounded-xl bg-gradient-to-r from-sky-500 to-cyan-500 text-white text-xl font-bold shadow-md shadow-sky-200 flex items-center justify-center gap-3 focus:outline-none focus-visible:outline-none focus-visible:ring-0 active:brightness-95"
+                className="h-16 px-8 rounded-xl text-xl font-bold shadow-md flex items-center justify-center gap-3 focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-primary-sky"
               >
                 <ArrowRight size={24} />
                 Yes, keep going
@@ -57,7 +57,7 @@ export function Layout({ children }: LayoutProps) {
               <button
                 type="button"
                 onClick={inactivity.goHome}
-                className="h-16 px-8 rounded-xl bg-white border-2 border-gray-300 text-gray-700 text-xl font-bold shadow-sm flex items-center justify-center focus:outline-none focus-visible:outline-none focus-visible:ring-0 active:bg-gray-100"
+                className="h-16 px-8 rounded-xl text-xl font-bold shadow-sm flex items-center justify-center focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-muted-button"
               >
                 Go Home
               </button>

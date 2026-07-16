@@ -43,7 +43,7 @@ export function LowSupply() {
     return (
       <Layout>
         <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin w-16 h-16 border-8 border-gray-200 border-t-blue-600 rounded-full"></div>
+          <div className="animate-spin w-16 h-16 border-8 rounded-full kiosk-spinner-sky"></div>
         </div>
       </Layout>
     );
@@ -94,42 +94,42 @@ export function LowSupply() {
     <Layout>
       <div className="flex-1 flex flex-col items-center justify-center max-w-4xl w-full mx-auto pb-16">
         
-        <div className="w-32 h-32 bg-amber-50 text-amber-500 rounded-full flex items-center justify-center mb-8">
+        <div className="w-32 h-32 rounded-full flex items-center justify-center mb-8 kiosk-circle-amber">
           <AlertTriangle size={80} />
         </div>
         
-        <h2 className="text-4xl font-bold text-gray-900 mb-6 text-center">
+        <h2 className="text-4xl font-bold mb-6 text-center kiosk-heading">
           {source === 'print' ? 'Printing Paused' : 'Service Required'}
         </h2>
         
-        <p className="text-2xl text-gray-600 mb-12 text-center max-w-2xl">
+        <p className="text-2xl mb-12 text-center max-w-2xl kiosk-copy">
           {source === 'print' 
             ? 'Your print job requires more supplies than are currently available in the machine.' 
             : 'This kiosk is running low on supplies and needs to be serviced before printing.'}
         </p>
 
         <div className="grid grid-cols-2 gap-8 w-full max-w-2xl mb-12">
-          <div className={`flex flex-col items-center p-6 border-2 rounded-2xl ${isPaperLow ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white'}`}>
-            <span className="text-xl font-bold text-gray-700 mb-2">Paper Remaining</span>
-            <span className={`text-4xl font-bold ${isPaperLow ? 'text-red-600' : 'text-gray-900'}`}>
+          <div className={`flex flex-col items-center p-6 border-2 rounded-2xl ${isPaperLow ? 'kiosk-soft-red' : 'kiosk-panel'}`}>
+            <span className="text-xl font-bold mb-2 kiosk-copy">Paper Remaining</span>
+            <span className={`text-4xl font-bold ${isPaperLow ? 'kiosk-text-red' : 'kiosk-heading'}`}>
               {consumables.paper_remaining}
             </span>
-            <span className="text-gray-500 mt-2">/ {consumables.paper_capacity} max</span>
+            <span className="mt-2 kiosk-copy">/ {consumables.paper_capacity} max</span>
           </div>
           
-          <div className={`flex flex-col items-center p-6 border-2 rounded-2xl ${isTonerLow ? 'border-red-300 bg-red-50' : 'border-gray-200 bg-white'}`}>
-            <span className="text-xl font-bold text-gray-700 mb-2">Toner Remaining</span>
-            <span className={`text-4xl font-bold ${isTonerLow ? 'text-red-600' : 'text-gray-900'}`}>
+          <div className={`flex flex-col items-center p-6 border-2 rounded-2xl ${isTonerLow ? 'kiosk-soft-red' : 'kiosk-panel'}`}>
+            <span className="text-xl font-bold mb-2 kiosk-copy">Toner Remaining</span>
+            <span className={`text-4xl font-bold ${isTonerLow ? 'kiosk-text-red' : 'kiosk-heading'}`}>
               {consumables.toner_remaining}
             </span>
-            <span className="text-gray-500 mt-2">/ {consumables.toner_capacity} max</span>
+            <span className="mt-2 kiosk-copy">/ {consumables.toner_capacity} max</span>
           </div>
         </div>
 
         <div className="flex gap-6 w-full max-w-2xl">
           <button
             onClick={() => navigate('/')}
-            className="flex-1 h-20 bg-white border-2 border-gray-200 text-gray-700 text-2xl font-bold rounded-xl shadow-sm active:bg-gray-50 flex items-center justify-center gap-3 transition-colors"
+            className="flex-1 h-20 text-2xl font-bold rounded-xl shadow-sm flex items-center justify-center gap-3 transition-colors kiosk-muted-button"
           >
             <Home size={32} />
             Return Home
@@ -138,12 +138,12 @@ export function LowSupply() {
           <button
             onClick={handleSendAlert}
             disabled={alertSent || alertSending}
-            className={`flex-1 h-20 text-white text-2xl font-bold rounded-xl shadow-md flex items-center justify-center gap-3 transition-colors ${
-              alertSent ? 'bg-green-600' : 'bg-gradient-to-r from-rose-500 to-orange-500 border-0 active:opacity-80'
+            className={`flex-1 h-20 text-2xl font-bold rounded-xl shadow-md flex items-center justify-center gap-3 transition-colors ${
+              alertSent ? 'kiosk-primary-emerald' : 'kiosk-primary-rose'
             }`}
           >
             {alertSending ? (
-              <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+              <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin kiosk-spinner-white"></div>
             ) : alertSent ? (
               <>Alert Sent</>
             ) : (
@@ -156,7 +156,7 @@ export function LowSupply() {
         </div>
 
         {alertError && (
-          <p className="mt-6 text-xl font-bold text-red-600">
+          <p className="mt-6 text-xl font-bold kiosk-text-red">
             Failed to send alert. Please try again later.
           </p>
         )}
@@ -165,3 +165,5 @@ export function LowSupply() {
     </Layout>
   );
 }
+
+

@@ -147,7 +147,7 @@ export function Status() {
     return (
       <Layout>
         <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin w-16 h-16 border-8 border-gray-200 border-t-rose-600 rounded-full"></div>
+          <div className="animate-spin w-16 h-16 border-8 rounded-full kiosk-spinner-rose"></div>
         </div>
       </Layout>
     );
@@ -158,14 +158,14 @@ export function Status() {
       <div className="flex-1 flex flex-col items-center justify-center pb-16">
         {status === 'processing' && (
           <div className="flex flex-col items-center max-w-2xl text-center">
-            <div className="w-32 h-32 bg-gradient-to-br from-sky-50 to-cyan-100 text-sky-500 rounded-full flex items-center justify-center mb-8 relative shadow-lg shadow-sky-100">
-              <div className="absolute inset-0 rounded-full border-8 border-sky-100 border-t-sky-500 animate-spin"></div>
+            <div className="w-32 h-32 text-white rounded-full flex items-center justify-center mb-8 relative shadow-lg kiosk-circle-sky">
+              <div className="absolute inset-0 rounded-full border-8 animate-spin kiosk-ring-sky"></div>
               <Printer size={48} className="relative z-10" />
             </div>
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl font-bold mb-4 kiosk-heading">
               Processing your job...
             </h2>
-            <p className="text-2xl text-gray-600">
+            <p className="text-2xl kiosk-copy">
               Please wait while your document is being sent to the printer.
             </p>
           </div>
@@ -173,10 +173,10 @@ export function Status() {
 
         {status === 'printing' && (
           <div className="flex flex-col items-center max-w-2xl text-center">
-            <div className="w-32 h-32 bg-gradient-to-br from-rose-50 to-orange-100 text-rose-600 rounded-full flex items-center justify-center mb-8 relative shadow-lg shadow-rose-100">
-              <div className="absolute inset-0 rounded-full border-8 border-rose-200"></div>
+            <div className="w-32 h-32 text-white rounded-full flex items-center justify-center mb-8 relative shadow-lg kiosk-circle-rose">
+              <div className="absolute inset-0 rounded-full border-8 kiosk-ring-rose"></div>
               <div
-                className="absolute inset-0 rounded-full border-8 border-rose-600 transition-all duration-500"
+                className="absolute inset-0 rounded-full border-8 transition-all duration-500 kiosk-ring-rose"
                 style={{
                   clipPath: `inset(${100 - progress}% 0 0 0)`,
                   transition: 'clip-path 1s linear'
@@ -184,10 +184,10 @@ export function Status() {
               ></div>
               <Printer size={64} className="animate-pulse relative z-10" />
             </div>
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl font-bold mb-4 kiosk-heading">
               Printing your job...
             </h2>
-            <p className="text-2xl text-gray-600">
+            <p className="text-2xl kiosk-copy">
               Please wait while your document is being prepared.
             </p>
           </div>
@@ -195,10 +195,10 @@ export function Status() {
 
         {status === 'completed' && (
           <div className="flex flex-col items-center max-w-2xl text-center">
-            <div className="w-32 h-32 bg-gradient-to-br from-emerald-50 to-lime-100 text-emerald-600 rounded-full flex items-center justify-center mb-8 shadow-lg shadow-emerald-100">
+            <div className="w-32 h-32 text-white rounded-full flex items-center justify-center mb-8 shadow-lg kiosk-circle-emerald">
               <CheckCircle2 size={80} />
             </div>
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl font-bold mb-4 kiosk-heading">
               Print Complete!
             </h2>
             <p className="text-2xl text-gray-600 mb-12">
@@ -210,7 +210,7 @@ export function Status() {
                 sessionStorage.setItem('arox_returning_home_audio', 'thank_you');
                 navigate('/');
               }}
-              className="w-full h-20 bg-gradient-to-r from-emerald-500 to-lime-500 text-white text-2xl font-bold rounded-xl shadow-md shadow-emerald-200 active:brightness-95 flex items-center justify-center gap-4 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+              className="w-full h-20 text-white text-2xl font-bold rounded-xl shadow-md flex items-center justify-center gap-4 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-primary-emerald"
             >
               <Home size={32} />
               Return Home
@@ -220,10 +220,10 @@ export function Status() {
 
         {status === 'failed' && (
           <div className="flex flex-col items-center max-w-2xl text-center">
-            <div className="w-32 h-32 bg-gradient-to-br from-red-50 to-rose-100 text-red-600 rounded-full flex items-center justify-center mb-8 shadow-lg shadow-red-100">
+            <div className="w-32 h-32 text-white rounded-full flex items-center justify-center mb-8 shadow-lg kiosk-circle-red">
               <XCircle size={80} />
             </div>
-            <h2 className="text-4xl font-bold text-gray-900 mb-4">
+            <h2 className="text-4xl font-bold mb-4 kiosk-heading">
               Printing Failed
             </h2>
             <p className="text-2xl text-gray-600 mb-12">
@@ -232,7 +232,7 @@ export function Status() {
             <button
               type="button"
               onClick={() => navigate('/')}
-              className="w-full h-20 bg-gradient-to-r from-red-500 to-rose-600 text-white text-2xl font-bold rounded-xl shadow-md shadow-red-200 active:brightness-95 flex items-center justify-center gap-4 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+              className="w-full h-20 text-white text-2xl font-bold rounded-xl shadow-md flex items-center justify-center gap-4 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-primary-red"
             >
               <Home size={32} />
               Return Home

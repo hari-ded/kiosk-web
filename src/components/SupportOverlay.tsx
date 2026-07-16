@@ -84,9 +84,9 @@ export function SupportOverlay({ onClose }: Props) {
   };
 
   return (
-    <div className="absolute inset-0 bg-black/60 z-50 flex items-center justify-center p-8 backdrop-blur-sm">
-      <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col">
-        <div className="h-20 bg-gradient-to-r from-rose-500 to-orange-500 border-0 px-8 flex items-center justify-between shrink-0 text-white">
+    <div className="absolute inset-0 z-50 flex items-center justify-center p-8 kiosk-overlay kiosk-blur">
+      <div className="rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col kiosk-panel-strong">
+        <div className="h-20 border-0 px-8 flex items-center justify-between shrink-0 text-white kiosk-primary-rose">
           <h2 className="text-2xl font-bold flex items-center gap-3">
             <Phone size={28} />
             Live Support
@@ -101,7 +101,7 @@ export function SupportOverlay({ onClose }: Props) {
         <div className="p-8 flex flex-col min-h-[400px]">
           {callState === 'category' && (
             <div className="flex-1 flex flex-col">
-              <h3 className="text-2xl font-bold text-gray-900 mb-8 text-center">What do you need help with?</h3>
+              <h3 className="text-2xl font-bold kiosk-heading mb-8 text-center">What do you need help with?</h3>
               <div className="grid grid-cols-2 gap-6 flex-1">
                 {[
                   { id: 'paper_jam', label: 'Paper Jam' },
@@ -112,7 +112,7 @@ export function SupportOverlay({ onClose }: Props) {
                   <button
                     key={cat.id}
                     onClick={() => { setCategory(cat.id); setCallState('description'); }}
-                    className="h-24 bg-gray-50 border-2 border-gray-200 rounded-xl text-xl font-bold text-gray-800 active:bg-rose-50 active:border-rose-300 transition-colors"
+                    className="h-24 rounded-xl text-xl font-bold transition-colors kiosk-muted-button"
                   >
                     {cat.label}
                   </button>
@@ -123,10 +123,10 @@ export function SupportOverlay({ onClose }: Props) {
 
           {callState === 'description' && (
             <div className="flex-1 flex flex-col">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6">Add a description (Optional)</h3>
+              <h3 className="text-2xl font-bold kiosk-heading mb-6">Add a description (Optional)</h3>
 
               {error && (
-                <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-start gap-4 text-red-700">
+                <div className="mb-6 p-4 rounded-xl flex items-start gap-4 kiosk-soft-red kiosk-text-red">
                   <AlertCircle size={28} className="shrink-0" />
                   <span className="text-lg font-medium">{error}</span>
                 </div>
@@ -136,18 +136,18 @@ export function SupportOverlay({ onClose }: Props) {
                 value={description}
                 onChange={e => setDescription(e.target.value)}
                 placeholder="Type any additional details here..."
-                className="w-full h-40 p-4 border-2 border-gray-300 rounded-xl text-xl bg-gray-50 resize-none focus:outline-none focus:border-rose-500 mb-8"
+                className="w-full h-40 p-4 border-2 rounded-xl text-xl resize-none focus:outline-none mb-8 kiosk-input"
               />
               <div className="flex gap-6 mt-auto">
                 <button
                   onClick={() => setCallState('category')}
-                  className="flex-1 h-16 bg-white border-2 border-gray-300 rounded-xl text-xl font-bold text-gray-700 active:bg-gray-100"
+                  className="flex-1 h-16 rounded-xl text-xl font-bold kiosk-muted-button"
                 >
                   Back
                 </button>
                 <button
                   onClick={handleStartCall}
-                  className="flex-1 h-16 bg-gradient-to-r from-rose-500 to-orange-500 border-0 rounded-xl text-xl font-bold text-white shadow-md active:opacity-80 flex items-center justify-center gap-3"
+                  className="flex-1 h-16 border-0 rounded-xl text-xl font-bold text-white shadow-md flex items-center justify-center gap-3 kiosk-primary-rose"
                 >
                   <Phone size={24} />
                   Start Call
@@ -159,24 +159,24 @@ export function SupportOverlay({ onClose }: Props) {
           {callState === 'requesting_mic' && (
             <div className="flex-1 flex flex-col items-center justify-center text-center">
               <Mic size={64} className="text-rose-600 mb-8 animate-pulse" />
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Microphone Access</h3>
-              <p className="text-xl text-gray-600">Please allow microphone access when prompted to speak with support.</p>
+              <h3 className="text-2xl font-bold mb-4 kiosk-heading">Microphone Access</h3>
+              <p className="text-xl kiosk-copy">Please allow microphone access when prompted to speak with support.</p>
             </div>
           )}
 
           {callState === 'connecting' && (
             <div className="flex-1 flex flex-col items-center justify-center text-center">
               <Loader2 size={64} className="text-rose-600 mb-8 animate-spin" />
-              <h3 className="text-2xl font-bold text-gray-900 mb-4">Connecting to Support...</h3>
-              <p className="text-xl text-gray-600">Your request has been submitted from kiosk {KIOSK_ID}.</p>
+              <h3 className="text-2xl font-bold mb-4 kiosk-heading">Connecting to Support...</h3>
+              <p className="text-xl kiosk-copy">Your request has been submitted from kiosk {KIOSK_ID}.</p>
             </div>
           )}
 
           {callState === 'active' && (
             <div className="flex-1 flex flex-col items-center justify-center">
-              <div className="w-32 h-32 bg-green-50 rounded-full flex items-center justify-center mb-8 relative">
-                <div className="absolute inset-0 rounded-full bg-green-200 animate-ping opacity-75"></div>
-                <div className="w-24 h-24 bg-green-500 rounded-full flex items-center justify-center relative z-10 text-white shadow-lg">
+              <div className="w-32 h-32 rounded-full flex items-center justify-center mb-8 relative kiosk-soft-emerald">
+                <div className="absolute inset-0 rounded-full animate-ping opacity-75 kiosk-soft-emerald"></div>
+                <div className="w-24 h-24 rounded-full flex items-center justify-center relative z-10 text-white shadow-lg kiosk-circle-emerald">
                   <Phone size={48} />
                 </div>
               </div>
@@ -188,8 +188,8 @@ export function SupportOverlay({ onClose }: Props) {
                   onClick={toggleMute}
                   className={`flex-1 h-20 rounded-2xl flex flex-col items-center justify-center gap-2 border-2 transition-colors ${
                     isMuted
-                      ? 'bg-red-50 border-red-200 text-red-600'
-                      : 'bg-white border-gray-200 text-gray-700 active:bg-gray-100'
+                      ? 'kiosk-soft-red kiosk-text-red'
+                      : 'kiosk-muted-button'
                   }`}
                 >
                   {isMuted ? <MicOff size={36} /> : <Mic size={36} />}
@@ -198,7 +198,7 @@ export function SupportOverlay({ onClose }: Props) {
 
                 <button
                   onClick={handleEndCall}
-                  className="flex-1 h-20 bg-red-600 border-2 border-red-600 rounded-2xl flex flex-col items-center justify-center gap-2 text-white active:bg-red-700 shadow-md transition-colors"
+                  className="flex-1 h-20 rounded-2xl flex flex-col items-center justify-center gap-2 text-white shadow-md transition-colors kiosk-primary-red"
                 >
                   <Phone size={36} className="rotate-[135deg]" />
                   <span className="text-lg font-bold">End</span>
@@ -211,3 +211,5 @@ export function SupportOverlay({ onClose }: Props) {
     </div>
   );
 }
+
+

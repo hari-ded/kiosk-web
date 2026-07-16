@@ -6,7 +6,7 @@ import { ArrowLeft, Delete, Sparkles } from 'lucide-react';
 import { playSound } from '../utils/audio';
 
 const buttonBase =
-  'h-20 rounded-xl border-2 shadow-sm flex items-center justify-center transition-all select-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 active:scale-[0.98]';
+  'h-20 rounded-xl border-2 shadow-sm flex items-center justify-center transition-all select-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 active:scale-[0.98] kiosk-key';
 
 export function ManualCode() {
   const navigate = useNavigate();
@@ -69,12 +69,12 @@ export function ManualCode() {
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="absolute left-0 h-16 px-6 flex items-center gap-3 bg-white border border-gray-200 rounded-xl shadow-sm text-xl font-bold text-gray-700 active:bg-gray-100 focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+            className="absolute left-0 h-16 px-6 flex items-center gap-3 rounded-xl shadow-sm text-xl font-bold focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-muted-button"
           >
             <ArrowLeft size={28} />
             Back
           </button>
-          <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 text-center tracking-tight">
+          <h2 className="text-4xl md:text-5xl font-extrabold text-center tracking-tight kiosk-heading">
             Enter Pickup Code
           </h2>
         </div>
@@ -82,18 +82,18 @@ export function ManualCode() {
         <div className="w-full grid grid-cols-1 lg:grid-cols-[minmax(0,24rem)_minmax(0,24rem)] gap-10 items-center justify-center place-items-center">
           <div className="w-full max-w-[24rem] flex flex-col items-stretch">
             <div
-              className={`h-24 bg-white border-4 rounded-3xl flex items-center justify-center shadow-[0_12px_30px_rgba(15,23,42,0.08)] mb-4 transition-colors ${error ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+              className={`h-24 rounded-3xl flex items-center justify-center shadow-[0_12px_30px_rgba(15,23,42,0.08)] mb-4 transition-colors kiosk-panel ${error ? 'kiosk-soft-red' : 'kiosk-input'}`}
             >
-              <span className="text-4xl md:text-5xl font-mono font-bold tracking-[0.32em] pl-[0.32em] text-gray-900">
+              <span className="text-4xl md:text-5xl font-mono font-bold tracking-[0.32em] pl-[0.32em] kiosk-heading">
                 ARX-{code.padEnd(6, '_')}
               </span>
             </div>
 
             <div className="min-h-8 mb-8 text-center">
               {error ? (
-                <span className="text-xl font-bold text-red-600">{error}</span>
+                <span className="text-xl font-bold kiosk-text-red">{error}</span>
               ) : (
-                <span className="text-xl text-gray-500">Enter the 6-digit code from your email</span>
+                <span className="text-xl kiosk-copy">Enter the 6-digit code from your email</span>
               )}
             </div>
 
@@ -101,14 +101,10 @@ export function ManualCode() {
               type="button"
               onClick={handleConfirm}
               disabled={code.length !== 6 || validating}
-              className={`h-16 w-full rounded-xl text-xl font-bold flex items-center justify-center gap-3 shadow-md border-2 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-75 ${
-                code.length === 6 && !validating
-                  ? 'bg-gradient-to-r from-rose-500 to-orange-500 border-rose-600 text-white shadow-lg shadow-rose-200 active:brightness-95'
-                  : 'bg-gradient-to-r from-rose-400 to-orange-400 border-rose-500 text-white shadow-lg shadow-rose-100'
-              }`}
+              className="h-16 w-full rounded-xl text-xl font-bold flex items-center justify-center gap-3 shadow-md border-2 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-75 kiosk-primary-rose"
             >
               {validating ? (
-                <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin" />
+                <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin kiosk-spinner-white" />
               ) : (
                 <>
                   <Sparkles size={24} />
@@ -124,7 +120,7 @@ export function ManualCode() {
                 key={num}
                 type="button"
                 onClick={() => handlePadClick(num.toString())}
-                className={`${buttonBase} bg-white border-gray-200 text-3xl font-bold text-gray-900 active:bg-gray-100`}
+                className={buttonBase}
               >
                 {num}
               </button>
@@ -133,14 +129,14 @@ export function ManualCode() {
             <button
               type="button"
               onClick={() => handlePadClick('0')}
-              className={`${buttonBase} bg-white border-gray-200 text-3xl font-bold text-gray-900 active:bg-gray-100`}
+              className={buttonBase}
             >
               0
             </button>
             <button
               type="button"
               onClick={handleDelete}
-              className={`${buttonBase} bg-white border-gray-200 text-gray-700 active:bg-gray-100`}
+              className={`${buttonBase} kiosk-copy`}
             >
               <Delete size={36} />
             </button>
@@ -150,3 +146,6 @@ export function ManualCode() {
     </Layout>
   );
 }
+
+
+

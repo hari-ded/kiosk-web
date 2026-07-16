@@ -44,7 +44,7 @@ export function Confirm() {
     return (
       <Layout>
         <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin w-16 h-16 border-8 border-gray-200 border-t-rose-600 rounded-full"></div>
+          <div className="animate-spin w-16 h-16 border-8 rounded-full kiosk-spinner-rose"></div>
         </div>
       </Layout>
     );
@@ -163,10 +163,10 @@ export function Confirm() {
     });
   };
 
-  const detailTone = otpMode ? 'text-rose-600' : 'text-sky-600';
+  const detailTone = otpMode ? 'kiosk-text-rose' : 'kiosk-text-sky';
   const actionButtonTone = loading
-    ? 'bg-gray-300 text-gray-500 border-gray-300'
-    : 'bg-gradient-to-r from-rose-500 to-orange-500 border-rose-600 text-white shadow-lg shadow-rose-200 active:brightness-95 disabled:opacity-75 disabled:cursor-not-allowed';
+    ? 'kiosk-action-disabled'
+    : 'kiosk-primary-rose disabled:opacity-75 disabled:cursor-not-allowed';
   const actionLabel = job.email ? 'Confirm Details & Send Code' : 'Confirm Details & Print';
 
   return (
@@ -176,7 +176,7 @@ export function Confirm() {
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="absolute left-0 h-16 px-6 flex items-center gap-3 bg-white border border-gray-200 rounded-xl shadow-sm text-xl font-bold text-gray-700 active:bg-gray-100 focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+            className="absolute left-0 h-16 px-6 flex items-center gap-3 rounded-xl shadow-sm text-xl font-bold focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-muted-button"
           >
             <ArrowLeft size={28} />
             Cancel
@@ -187,23 +187,23 @@ export function Confirm() {
         </div>
 
         <div className="flex-1 flex flex-col items-center justify-center gap-8">
-          <div className="w-full bg-white border border-gray-200 shadow-sm rounded-2xl p-6 flex items-center justify-between">
+          <div className="w-full rounded-2xl p-6 flex items-center justify-between kiosk-panel">
             <div className="flex items-center gap-6">
-              <div className="flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-rose-500 to-orange-500 text-white shadow-md">
+              <div className="flex items-center justify-center w-16 h-16 rounded-full text-white shadow-md kiosk-circle-rose">
                 <FileText size={32} />
               </div>
               <div className="flex flex-col">
-                <h3 className="text-2xl font-bold text-gray-900 truncate max-w-lg">
+                <h3 className="text-2xl font-bold truncate max-w-lg kiosk-heading">
                   {job.filename}
                 </h3>
-                <p className="text-gray-600 text-lg font-medium">
-                  <span className="text-sky-600">{job.pages} Pages</span>
+                <p className="text-lg font-medium kiosk-copy">
+                  <span className="kiosk-text-sky">{job.pages} Pages</span>
                   {'  -  '}
-                  <span className="text-rose-500">{job.copies} Copies</span>
+                  <span className="kiosk-text-rose">{job.copies} Copies</span>
                   {'  -  '}
-                  <span className={job.color ? 'text-emerald-600' : 'text-gray-700'}>{job.color ? 'Color' : 'Black & White'}</span>
+                  <span className={job.color ? 'kiosk-text-emerald' : 'kiosk-copy'}>{job.color ? 'Color' : 'Black & White'}</span>
                   {'  -  '}
-                  <span className="text-amber-600">{job.pages * job.copies} Total</span>
+                  <span className="kiosk-text-amber">{job.pages * job.copies} Total</span>
                 </p>
               </div>
             </div>
@@ -222,10 +222,10 @@ export function Confirm() {
                 type="button"
                 onClick={handleInitialAction}
                 disabled={loading}
-                className={`w-full max-w-2xl h-20 border-2 text-2xl font-bold rounded-xl shadow-md active:opacity-80 transition-all flex items-center justify-center gap-4 focus:outline-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-75 ${actionButtonTone}`}
+                className={`w-full max-w-2xl h-20 border-2 text-2xl font-bold rounded-xl shadow-md transition-all flex items-center justify-center gap-4 focus:outline-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-75 ${actionButtonTone}`}
               >
                 {loading ? (
-                  <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+                  <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin kiosk-spinner-white"></div>
                 ) : (
                   <>
                     {job.email ? <Lock size={28} /> : <Sparkles size={28} />}
@@ -238,19 +238,19 @@ export function Confirm() {
             <div className="w-full flex gap-12 items-start justify-center mt-4">
               <div className="w-96 flex flex-col">
                 <div className="mb-6">
-                  <p className="text-xl text-sky-600 mb-2 font-medium">Code sent to:</p>
-                  <p className="text-2xl font-bold text-gray-900">{maskEmail(job.email!)}</p>
+                  <p className="text-xl kiosk-text-sky mb-2 font-medium">Code sent to:</p>
+                  <p className="text-2xl font-bold kiosk-heading">{maskEmail(job.email!)}</p>
                 </div>
 
-                <div className={`h-24 bg-white border-4 rounded-2xl flex items-center justify-center shadow-inner mb-4 transition-colors ${error ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}>
-                  <span className="text-5xl font-mono font-bold tracking-[0.5em] ml-[0.25em] text-gray-900">
+                <div className={`h-24 rounded-2xl flex items-center justify-center shadow-inner mb-4 transition-colors kiosk-panel ${error ? 'kiosk-soft-red' : 'kiosk-input'}`}>
+                  <span className="text-5xl font-mono font-bold tracking-[0.5em] ml-[0.25em] kiosk-heading">
                     {otp.padEnd(6, '_')}
                   </span>
                 </div>
 
                 <div className="h-12 mb-4">
                   {error && (
-                    <span className="text-xl font-bold text-red-600 flex items-center gap-2"><ShieldCheck size={20} />{error}</span>
+                    <span className="text-xl font-bold kiosk-text-red flex items-center gap-2"><ShieldCheck size={20} />{error}</span>
                   )}
                 </div>
 
@@ -261,7 +261,7 @@ export function Confirm() {
                   className={`h-16 w-full rounded-xl text-xl font-bold flex items-center justify-center gap-3 shadow-md border-2 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0 disabled:cursor-not-allowed disabled:opacity-75 ${actionButtonTone}`}
                 >
                   {loading ? (
-                    <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin kiosk-spinner-white"></div>
                   ) : (
                     'Verify & Print'
                   )}
@@ -274,7 +274,7 @@ export function Confirm() {
                     key={num}
                     type="button"
                     onClick={() => handlePadClick(num.toString())}
-                    className="h-20 bg-white border border-gray-200 rounded-xl shadow-sm text-3xl font-bold text-gray-900 active:bg-gray-100 flex items-center justify-center focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+                    className="h-20 rounded-xl shadow-sm text-3xl font-bold flex items-center justify-center focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-key"
                   >
                     {num}
                   </button>
@@ -282,21 +282,21 @@ export function Confirm() {
                 <button
                   type="button"
                   onClick={handleClear}
-                  className="h-20 bg-white border border-gray-200 rounded-xl shadow-sm text-xl font-bold text-rose-500 active:bg-gray-100 flex items-center justify-center focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+                  className="h-20 rounded-xl shadow-sm text-xl font-bold flex items-center justify-center focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-key kiosk-text-rose"
                 >
                   Clear
                 </button>
                 <button
                   type="button"
                   onClick={() => handlePadClick('0')}
-                  className="h-20 bg-white border border-gray-200 rounded-xl shadow-sm text-3xl font-bold text-gray-900 active:bg-gray-100 flex items-center justify-center focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+                  className="h-20 rounded-xl shadow-sm text-3xl font-bold flex items-center justify-center focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-key"
                 >
                   0
                 </button>
                 <button
                   type="button"
                   onClick={handleDelete}
-                  className="h-20 bg-white border border-gray-200 rounded-xl shadow-sm text-sky-600 active:bg-gray-100 flex items-center justify-center focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+                  className="h-20 rounded-xl shadow-sm flex items-center justify-center focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-key kiosk-text-sky"
                 >
                   <Delete size={36} />
                 </button>
@@ -308,3 +308,5 @@ export function Confirm() {
     </Layout>
   );
 }
+
+

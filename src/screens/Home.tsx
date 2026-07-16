@@ -49,7 +49,7 @@ export function Home() {
     return (
       <Layout>
         <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin w-16 h-16 border-8 border-gray-200 border-t-sky-600 rounded-full"></div>
+          <div className="animate-spin w-16 h-16 border-8 rounded-full kiosk-spinner-sky"></div>
         </div>
       </Layout>
     );
@@ -58,7 +58,7 @@ export function Home() {
   return (
     <Layout>
       <div className="flex-1 flex flex-col items-center justify-center">
-        <h2 className="text-3xl font-bold text-gray-900 mb-16 text-center max-w-2xl">
+        <h2 className="text-3xl font-bold mb-16 text-center max-w-2xl kiosk-heading">
           How would you like to retrieve your print job?
         </h2>
 
@@ -66,23 +66,23 @@ export function Home() {
           <button
             type="button"
             onClick={() => navigate('/scan')}
-            className="flex-1 h-64 bg-gradient-to-br from-sky-50 to-cyan-50 border-2 border-sky-200 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-6 active:bg-sky-100 active:border-sky-300 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+            className="flex-1 h-64 border-2 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-6 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-panel kiosk-soft-sky"
           >
-            <div className="w-24 h-24 bg-gradient-to-br from-sky-500 to-cyan-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-sky-200">
+            <div className="w-24 h-24 text-white rounded-full flex items-center justify-center shadow-lg kiosk-circle-sky">
               <QrCode size={48} strokeWidth={2.5} />
             </div>
-            <span className="text-2xl font-bold text-sky-900">Scan QR Code</span>
+            <span className="text-2xl font-bold kiosk-text-sky">Scan QR Code</span>
           </button>
 
           <button
             type="button"
             onClick={() => navigate('/code')}
-            className="flex-1 h-64 bg-gradient-to-br from-rose-50 to-orange-50 border-2 border-rose-200 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-6 active:bg-rose-100 active:border-rose-300 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+            className="flex-1 h-64 border-2 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-6 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-panel kiosk-soft-rose"
           >
-            <div className="w-24 h-24 bg-gradient-to-br from-rose-500 to-orange-500 text-white rounded-full flex items-center justify-center shadow-lg shadow-rose-200">
+            <div className="w-24 h-24 text-white rounded-full flex items-center justify-center shadow-lg kiosk-circle-rose">
               <Keyboard size={48} strokeWidth={2.5} />
             </div>
-            <span className="text-2xl font-bold text-rose-900">Enter Code</span>
+            <span className="text-2xl font-bold kiosk-text-rose">Enter Code</span>
           </button>
         </div>
       </div>

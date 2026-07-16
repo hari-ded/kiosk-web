@@ -96,31 +96,31 @@ export function QrScan() {
           <button
             type="button"
             onClick={() => navigate('/')}
-            className="absolute left-0 h-16 px-6 flex items-center gap-3 bg-white border border-gray-200 rounded-xl shadow-sm text-xl font-bold text-gray-700 active:bg-gray-100 z-10 focus:outline-none focus-visible:outline-none focus-visible:ring-0"
+            className="absolute left-0 h-16 px-6 flex items-center gap-3 rounded-xl shadow-sm text-xl font-bold z-10 focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-muted-button"
           >
             <ArrowLeft size={28} />
             Back
           </button>
-          <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 text-center tracking-tight">
+          <h2 className="text-4xl md:text-5xl font-extrabold text-center tracking-tight kiosk-heading">
             Scan QR Code
           </h2>
         </div>
 
         <div className="w-full flex flex-col items-center justify-center gap-6">
           {cameraError ? (
-            <div className="w-full max-w-[420px] h-[420px] bg-gray-200 rounded-3xl flex flex-col items-center justify-center p-8 text-center border border-gray-300 shadow-sm">
+            <div className="w-full max-w-[420px] h-[420px] rounded-3xl flex flex-col items-center justify-center p-8 text-center border shadow-sm kiosk-panel">
               <span className="text-2xl font-bold text-red-600 mb-4">Camera Error</span>
               <span className="text-xl text-gray-700">Unable to access the device camera. Please try entering your code manually.</span>
             </div>
           ) : (
-            <div className="w-full max-w-[420px] aspect-square relative rounded-3xl overflow-hidden border-4 border-gray-300 shadow-xl bg-black mx-auto">
+            <div className="w-full max-w-[420px] aspect-square relative rounded-3xl overflow-hidden border-4 shadow-xl bg-black mx-auto kiosk-panel">
               <div id="qr-reader" className="absolute inset-0 w-full h-full" style={{ border: 'none' }} />
               <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                <div className="w-[260px] h-[260px] rounded-3xl border-4 border-white/85 shadow-[0_0_0_9999px_rgba(0,0,0,0.18)]" />
+                <div className="w-[260px] h-[260px] rounded-3xl border-4 shadow-[0_0_0_9999px_rgba(0,0,0,0.18)] kiosk-ring-sky" />
               </div>
               {error && (
                 <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-20 p-6 text-center">
-                  <span className="text-2xl font-bold text-white bg-red-600 px-8 py-4 rounded-xl shadow-lg">
+                  <span className="text-2xl font-bold text-white px-8 py-4 rounded-xl shadow-lg kiosk-primary-red">
                     {error}
                   </span>
                 </div>
@@ -128,7 +128,7 @@ export function QrScan() {
             </div>
           )}
 
-          <div className="text-center text-xl text-gray-600 font-medium max-w-md">
+          <div className="text-center text-xl font-medium max-w-md kiosk-copy">
             Hold your QR code steady inside the frame
           </div>
         </div>
