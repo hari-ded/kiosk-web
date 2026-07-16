@@ -30,8 +30,9 @@ export function ManualCode() {
     setError(null);
 
     const result = await validateJobCode(code);
-    
+
     if (result.job) {
+      sessionStorage.setItem('arox_current_job', JSON.stringify(result.job));
       navigate(`/confirm/${result.job.id}`, { state: { job: result.job } });
     } else {
       setError(result.error || 'Invalid pickup code. Please try again.');
@@ -63,7 +64,7 @@ export function ManualCode() {
                 ARX-{code.padEnd(6, '_')}
               </span>
             </div>
-            
+
             <div className="h-8 mb-8 text-center">
               {error ? (
                 <span className="text-xl font-bold text-red-600">{error}</span>
@@ -76,8 +77,8 @@ export function ManualCode() {
               onClick={handleConfirm}
               disabled={code.length !== 6 || validating}
               className={`h-16 w-full rounded-xl text-xl font-bold flex items-center justify-center shadow-md transition-opacity ${
-                code.length === 6 && !validating 
-                  ? 'bg-gradient-to-r from-rose-500 to-orange-500 border-0 text-white active:opacity-80' 
+                code.length === 6 && !validating
+                  ? 'bg-gradient-to-r from-rose-500 to-orange-500 border-0 text-white active:opacity-80'
                   : 'bg-gray-300 text-gray-500 opacity-70'
               }`}
             >

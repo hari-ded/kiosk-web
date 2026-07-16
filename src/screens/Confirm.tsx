@@ -5,10 +5,19 @@ import { PrintJob } from '../types';
 import { Layout } from '../components/Layout';
 import { ArrowLeft, Delete, FileText, Lock } from 'lucide-react';
 
+function readStoredJob() {
+  try {
+    const raw = sessionStorage.getItem('arox_current_job');
+    return raw ? (JSON.parse(raw) as PrintJob) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function Confirm() {
   const navigate = useNavigate();
   const location = useLocation();
-  const job = location.state?.job as PrintJob | undefined;
+  const job = (location.state?.job as PrintJob | undefined) || readStoredJob();
 
   const [otpMode, setOtpMode] = useState(false);
   const [otp, setOtp] = useState('');
@@ -30,7 +39,15 @@ export function Confirm() {
     }
   }, [job]);
 
-  if (!job) return null;
+  if (!job) {
+    return (
+      <Layout>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-spin w-16 h-16 border-8 border-gray-200 border-t-blue-600 rounded-full"></div>
+        </div>
+      </Layout>
+    );
+  }
 
   const maskEmail = (email: string) => {
     const [user, domain] = email.split('@');
@@ -104,8 +121,6 @@ export function Confirm() {
         if (success) {
           setOtpMode(true);
         } else {
-          // fallback to direct print attempt if request fails? 
-          // "If OTP request fails, the app falls back to the direct print release attempt."
           const releaseSuccess = await releaseJob(job.pickup_code);
           if (releaseSuccess) {
             navigate(`/status/${job.id}`, { state: { job } });

@@ -8,10 +8,19 @@ import { Printer, CheckCircle2, XCircle, Home } from 'lucide-react';
 const SUCCESS_STATES = ['printed', 'completed', 'complete', 'success', 'done', 'finished'];
 const FAILURE_STATES = ['failed', 'failure', 'error', 'errored', 'aborted', 'cancelled', 'canceled'];
 
+function readStoredJob() {
+  try {
+    const raw = sessionStorage.getItem('arox_current_job');
+    return raw ? (JSON.parse(raw) as PrintJob) : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 export function Status() {
   const navigate = useNavigate();
   const location = useLocation();
-  const job = location.state?.job as PrintJob | undefined;
+  const job = (location.state?.job as PrintJob | undefined) || readStoredJob();
 
   const [status, setStatus] = useState<'processing' | 'printing' | 'completed' | 'failed'>('processing');
   const [progress, setProgress] = useState(0);
@@ -92,7 +101,7 @@ export function Status() {
         }
 
         schedulePoll(document.hidden ? 15000 : 3000);
-      } catch (err) {
+      } catch {
         if (mountedRef.current) {
           schedulePoll(5000);
         }
@@ -114,7 +123,15 @@ export function Status() {
     };
   }, [job, navigate]);
 
-  if (!job) return null;
+  if (!job) {
+    return (
+      <Layout>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-spin w-16 h-16 border-8 border-gray-200 border-t-blue-600 rounded-full"></div>
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>

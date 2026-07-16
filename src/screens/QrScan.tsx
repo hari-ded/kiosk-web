@@ -14,13 +14,13 @@ export function QrScan() {
 
   useEffect(() => {
     let mounted = true;
-    const scanner = new Html5Qrcode("qr-reader");
+    const scanner = new Html5Qrcode('qr-reader');
     scannerRef.current = scanner;
 
     const startScanner = async () => {
       try {
         await scanner.start(
-          { facingMode: "environment" },
+          { facingMode: 'environment' },
           {
             fps: 30,
             qrbox: { width: 400, height: 400 },
@@ -29,26 +29,27 @@ export function QrScan() {
           },
           async (decodedText) => {
             if (validatingRef.current || !mounted) return;
-            
+
             let code = decodedText;
             try {
               const parsed = JSON.parse(decodedText);
               if (parsed.code) code = parsed.code;
-            } catch (e) {
-              // Not JSON, use raw
+            } catch {
+              // Not JSON, use raw code.
             }
 
             validatingRef.current = true;
             scanner.pause();
-            
+
             const result = await validateJobCode(code);
             if (!mounted) return;
 
             if (result.job) {
+              sessionStorage.setItem('arox_current_job', JSON.stringify(result.job));
               scanner.stop().then(() => {
-                navigate(`/confirm/${result.job.id}`, { state: { job: result.job } });
+                navigate(`/confirm/${result.job!.id}`, { state: { job: result.job } });
               }).catch(() => {
-                navigate(`/confirm/${result.job.id}`, { state: { job: result.job } });
+                navigate(`/confirm/${result.job!.id}`, { state: { job: result.job } });
               });
             } else {
               setError(result.error || 'Invalid QR code. Please try again.');
@@ -61,7 +62,7 @@ export function QrScan() {
               }, 3000);
             }
           },
-          () => {} // ignore scan errors
+          () => {}
         );
       } catch (err) {
         if (mounted) setCameraError(true);
@@ -112,7 +113,7 @@ export function QrScan() {
               )}
             </div>
           )}
-          
+
           <div className="mt-8 text-xl text-gray-600 font-medium">
             Hold your QR code steady inside the frame
           </div>
