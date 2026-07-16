@@ -143,7 +143,7 @@ export function Confirm() {
   return (
     <Layout>
       <div className="flex-1 flex flex-col max-w-5xl w-full mx-auto pb-4">
-        <div className="flex items-center mb-6 relative">
+        <div className="flex items-center mb-4 relative">
           <button
             type="button"
             onClick={() => navigate('/')}
@@ -157,8 +157,8 @@ export function Confirm() {
           </h2>
         </div>
 
-        <div className="flex-1 flex flex-col items-center justify-start gap-6 pt-2">
-          <div className="w-full max-w-5xl mx-auto rounded-[2rem] p-6 md:p-8 text-center kiosk-panel-strong">
+        <div className="flex-1 flex flex-col items-center justify-start gap-4 pt-1">
+          <div className="w-full max-w-4xl mx-auto rounded-[2rem] p-5 md:p-6 text-center kiosk-panel-strong max-h-[calc(100vh-17rem)] overflow-y-auto">
             <div className="flex flex-col items-center justify-center gap-2 mb-4">
               <div className="w-16 h-16 rounded-full flex items-center justify-center text-white shadow-md kiosk-circle-rose">
                 <FileText size={32} />
@@ -167,7 +167,7 @@ export function Confirm() {
               <p className="text-lg font-medium kiosk-copy">Job {job.pickup_code}</p>
             </div>
 
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
               <StatCard icon={<FileText size={22} />} label="Filename" value={job.filename} />
               <StatCard icon={<Hash size={22} />} label="Pickup Code" value={job.pickup_code} />
               <StatCard icon={<ArrowUpDown size={22} />} label="Orientation" value={summary.orientation} />
@@ -178,7 +178,7 @@ export function Confirm() {
               <StatCard icon={<Clock3 size={22} />} label="ETA" value={etaLabel} />
             </div>
 
-            <div className="mt-4 text-base kiosk-copy">
+            <div className="mt-3 text-base kiosk-copy">
               {colorLabel} printing • {formatSeconds(summary.printSeconds)} print time
             </div>
           </div>
@@ -210,3 +210,4 @@ export function Confirm() {
     </Layout>
   );
 }
+

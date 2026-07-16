@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchConsumables } from '../api';
 import { Layout } from '../components/Layout';
 import { QrCode, Keyboard } from 'lucide-react';
+import aroxLogo from '../../assets/arox_logo.png';
 import { playSound } from '../utils/audio';
 
 export function Home() {
@@ -59,8 +60,14 @@ export function Home() {
     <Layout>
       <div className="flex-1 flex flex-col items-center justify-center">
         <div className="mb-5 text-center">
-          <h2 className="text-3xl font-bold kiosk-heading">
-            Print anything <span
+          <h2 className="text-3xl font-bold kiosk-heading inline-flex items-center justify-center gap-4 whitespace-nowrap">
+            <img
+              src={aroxLogo}
+              alt="Arox"
+              className="w-14 h-14 rounded-2xl object-contain shrink-0 shadow-lg"
+            />
+            <span>Print anything </span>
+            <span
               style={{
                 backgroundImage: 'linear-gradient(90deg, #0284c7 0%, #facc15 33%, #f97316 66%, #ec4899 100%)',
                 WebkitBackgroundClip: 'text',
@@ -104,3 +111,5 @@ export function Home() {
     </Layout>
   );
 }
+
+
