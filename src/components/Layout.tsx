@@ -13,16 +13,16 @@ export function Layout({ children }: LayoutProps) {
   const location = useLocation();
   const onHelp = useSupport();
 
-  // Show help overlay trigger except on agent
   const showHelp = location.pathname !== '/agent' && onHelp;
 
   return (
-    <div className="w-full h-full p-8 flex flex-col relative bg-gray-50">
-      <header className="h-16 flex items-center justify-end shrink-0 mb-8">
+    <div className="w-full h-full p-6 md:p-8 flex flex-col relative bg-gray-50">
+      <header className="h-16 flex items-center justify-end shrink-0 mb-6 md:mb-8">
         {showHelp && (
           <button
+            type="button"
             onClick={onHelp}
-            className="w-16 h-16 flex items-center justify-center rounded-full bg-white shadow-sm border border-gray-200 text-gray-600 active:bg-gray-100"
+            className="w-16 h-16 flex items-center justify-center rounded-full bg-white shadow-sm border border-gray-200 text-gray-600 active:bg-gray-100 focus:outline-none focus-visible:outline-none"
           >
             <HelpCircle size={32} />
           </button>

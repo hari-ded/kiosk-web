@@ -4,6 +4,9 @@ import { validateJobCode } from '../api';
 import { Layout } from '../components/Layout';
 import { ArrowLeft, Delete } from 'lucide-react';
 
+const buttonBase =
+  'h-20 rounded-xl border-2 shadow-sm flex items-center justify-center transition-all select-none focus:outline-none focus-visible:outline-none focus-visible:ring-0 active:scale-[0.98]';
+
 export function ManualCode() {
   const navigate = useNavigate();
   const [code, setCode] = useState('');
@@ -43,29 +46,32 @@ export function ManualCode() {
 
   return (
     <Layout>
-      <div className="flex-1 flex flex-col max-w-4xl w-full mx-auto pb-8">
-        <div className="flex items-center mb-8 relative">
+      <div className="flex-1 flex flex-col justify-center items-center w-full max-w-7xl mx-auto pb-2 md:pb-6">
+        <div className="w-full flex items-center justify-center mb-10 relative">
           <button
+            type="button"
             onClick={() => navigate('/')}
-            className="absolute left-0 h-16 px-6 flex items-center gap-3 bg-white border border-gray-200 rounded-xl shadow-sm text-xl font-bold text-gray-700 active:bg-gray-100"
+            className="absolute left-0 h-16 px-6 flex items-center gap-3 bg-white border border-gray-200 rounded-xl shadow-sm text-xl font-bold text-gray-700 active:bg-gray-100 focus:outline-none focus-visible:outline-none focus-visible:ring-0"
           >
             <ArrowLeft size={28} />
             Back
           </button>
-          <h2 className="text-3xl font-bold text-gray-900 w-full text-center">
+          <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 text-center tracking-tight">
             Enter Pickup Code
           </h2>
         </div>
 
-        <div className="flex-1 flex gap-16 items-center justify-center">
-          <div className="w-96 flex flex-col">
-            <div className={`h-24 bg-white border-4 rounded-2xl flex items-center justify-center shadow-inner mb-4 transition-colors ${error ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}>
-              <span className="text-4xl font-mono font-bold tracking-widest text-gray-900">
+        <div className="w-full grid grid-cols-1 lg:grid-cols-[minmax(0,24rem)_minmax(0,24rem)] gap-10 items-center justify-center place-items-center">
+          <div className="w-full max-w-[24rem] flex flex-col items-stretch">
+            <div
+              className={`h-24 bg-white border-4 rounded-3xl flex items-center justify-center shadow-[0_12px_30px_rgba(15,23,42,0.08)] mb-4 transition-colors ${error ? 'border-red-400 bg-red-50' : 'border-gray-300'}`}
+            >
+              <span className="text-4xl md:text-5xl font-mono font-bold tracking-[0.32em] pl-[0.32em] text-gray-900">
                 ARX-{code.padEnd(6, '_')}
               </span>
             </div>
 
-            <div className="h-8 mb-8 text-center">
+            <div className="min-h-8 mb-8 text-center">
               {error ? (
                 <span className="text-xl font-bold text-red-600">{error}</span>
               ) : (
@@ -74,42 +80,46 @@ export function ManualCode() {
             </div>
 
             <button
+              type="button"
               onClick={handleConfirm}
               disabled={code.length !== 6 || validating}
-              className={`h-16 w-full rounded-xl text-xl font-bold flex items-center justify-center shadow-md transition-opacity ${
+              className={`h-16 w-full rounded-xl text-xl font-bold flex items-center justify-center shadow-md border-2 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0 ${
                 code.length === 6 && !validating
-                  ? 'bg-gradient-to-r from-rose-500 to-orange-500 border-0 text-white active:opacity-80'
-                  : 'bg-gray-300 text-gray-500 opacity-70'
+                  ? 'bg-gradient-to-r from-rose-500 to-orange-500 border-rose-600 text-white shadow-lg active:brightness-95'
+                  : 'bg-gray-200 border-gray-300 text-gray-500 opacity-90'
               }`}
             >
               {validating ? (
-                <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+                <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin" />
               ) : (
                 'Confirm Code'
               )}
             </button>
           </div>
 
-          <div className="w-96 grid grid-cols-3 gap-4">
+          <div className="w-full max-w-[24rem] grid grid-cols-3 gap-4 place-items-stretch">
             {[1, 2, 3, 4, 5, 6, 7, 8, 9].map(num => (
               <button
                 key={num}
+                type="button"
                 onClick={() => handlePadClick(num.toString())}
-                className="h-20 bg-white border border-gray-200 rounded-xl shadow-sm text-3xl font-bold text-gray-900 active:bg-gray-100 flex items-center justify-center"
+                className={`${buttonBase} bg-white border-gray-200 text-3xl font-bold text-gray-900 active:bg-gray-100`}
               >
                 {num}
               </button>
             ))}
-            <div className="h-20"></div>
+            <div className="h-20" />
             <button
+              type="button"
               onClick={() => handlePadClick('0')}
-              className="h-20 bg-white border border-gray-200 rounded-xl shadow-sm text-3xl font-bold text-gray-900 active:bg-gray-100 flex items-center justify-center"
+              className={`${buttonBase} bg-white border-gray-200 text-3xl font-bold text-gray-900 active:bg-gray-100`}
             >
               0
             </button>
             <button
+              type="button"
               onClick={handleDelete}
-              className="h-20 bg-white border border-gray-200 rounded-xl shadow-sm text-gray-700 active:bg-gray-100 flex items-center justify-center"
+              className={`${buttonBase} bg-white border-gray-200 text-gray-700 active:bg-gray-100`}
             >
               <Delete size={36} />
             </button>

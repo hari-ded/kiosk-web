@@ -8,13 +8,26 @@ const defaultHeaders = {
   'Cache-Control': 'no-store'
 };
 
+function normalizePickupCode(code: string) {
+  return /^\d{6}$/.test(code) ? `ARX-${code}` : code;
+}
+
+async function readJsonResponse<T>(res: Response): Promise<T | null> {
+  try {
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchConsumables(): Promise<Consumables> {
   const res = await fetch(`${API_URL}/kiosks/${KIOSK_ID}/consumables`, {
     cache: 'no-store',
     headers: defaultHeaders
   });
   if (!res.ok) throw new Error('Failed to fetch consumables');
-  const data = await res.json();
+  const data = await readJsonResponse<any>(res);
+  if (!data) throw new Error('Failed to fetch consumables');
   return {
     ...data,
     paper_capacity: Number(data.paper_capacity) || 0,
@@ -32,7 +45,11 @@ export async function validateJobCode(code: string): Promise<{ job?: PrintJob, e
       res = await fetch(`${API_URL}/job/ARX-${code}?kiosk_id=${KIOSK_ID}`, { cache: 'no-store', headers: defaultHeaders });
     }
 
-    const data = await res.json();
+    const data = await readJsonResponse<any>(res);
+    if (!data) {
+      return { error: 'Server returned an invalid response' };
+    }
+
     if (data.success === false) {
       return { error: data.error || data.message || 'Invalid pickup code' };
     }
@@ -45,7 +62,7 @@ export async function validateJobCode(code: string): Promise<{ job?: PrintJob, e
         copies: Number(data.copies) || 1,
         color: Boolean(data.color),
         status: data.status || 'unknown',
-        pickup_code: /^\d{6}$/.test(code) ? `ARX-${code}` : code,
+        pickup_code: normalizePickupCode(code),
         estimated_time_seconds: Number(data.estimated_time_seconds) || 0,
         email: data.email || null
       }
@@ -56,43 +73,51 @@ export async function validateJobCode(code: string): Promise<{ job?: PrintJob, e
 }
 
 export async function requestOtp(code: string): Promise<boolean> {
-  const res = await fetch(`${API_URL}/job/${code}/request_release_otp`, {
+  const pickupCode = normalizePickupCode(code);
+  const res = await fetch(`${API_URL}/job/${pickupCode}/request_release_otp`, {
     method: 'POST',
     cache: 'no-store',
     headers: defaultHeaders,
     body: JSON.stringify({ kiosk_id: KIOSK_ID })
   });
-  const data = await res.json();
+  if (!res.ok) return false;
+  const data = await readJsonResponse<any>(res);
+  if (!data) return false;
   return data.success;
 }
 
 export async function verifyOtp(code: string, otp: string): Promise<boolean> {
-  const pickupCode = /^\d{6}$/.test(code) ? `ARX-${code}` : code;
+  const pickupCode = normalizePickupCode(code);
   const res = await fetch(`${API_URL}/job/${pickupCode}/verify_release_otp`, {
     method: 'POST',
     cache: 'no-store',
     headers: defaultHeaders,
     body: JSON.stringify({ kiosk_id: KIOSK_ID, otp })
   });
-  const data = await res.json();
+  if (!res.ok) return false;
+  const data = await readJsonResponse<any>(res);
+  if (!data) return false;
   return data.success;
 }
 
 export async function releaseJob(code: string): Promise<boolean> {
-  const pickupCode = /^\d{6}$/.test(code) ? `ARX-${code}` : code;
+  const pickupCode = normalizePickupCode(code);
   const res = await fetch(`${API_URL}/release_job`, {
     method: 'POST',
     cache: 'no-store',
     headers: defaultHeaders,
     body: JSON.stringify({ pickup_code: pickupCode, kiosk_id: KIOSK_ID })
   });
-  const data = await res.json();
+  if (!res.ok) return false;
+  const data = await readJsonResponse<any>(res);
+  if (!data) return false;
   return data.success;
 }
 
 export async function checkJobStatus(uploadId: string): Promise<string> {
   const res = await fetch(`${API_URL}/job_status/${uploadId}`, { cache: 'no-store', headers: defaultHeaders });
-  const data = await res.json();
+  const data = await readJsonResponse<any>(res);
+  if (!data) return 'unknown';
   return data.status;
 }
 
@@ -121,7 +146,8 @@ export async function createSupportCall(category: string, description: string = 
     body: JSON.stringify({ kiosk_id: KIOSK_ID, category, description })
   });
   if (!res.ok) throw new Error('Failed to create support call');
-  const data = await res.json();
+  const data = await readJsonResponse<any>(res);
+  if (!data) throw new Error('Failed to create support call');
   return {
     ...data,
     id: data.id || data.call_id,

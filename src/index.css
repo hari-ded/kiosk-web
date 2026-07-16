@@ -12,18 +12,17 @@
     height: 100%;
   }
 
+  button {
+    -webkit-tap-highlight-color: transparent;
+  }
+
   body {
     @apply m-0 p-0 overflow-hidden bg-gray-50 text-gray-900 select-none;
     touch-action: manipulation;
     -webkit-text-size-adjust: 100%;
   }
 
-  /* Keep the kiosk canvas centered, but let smaller tablet browsers fit it. */
   #root {
-    @apply overflow-hidden relative mx-auto bg-white;
-    max-width: 1280px;
-    max-height: 800px;
-    min-width: 320px;
-    min-height: 568px;
+    @apply overflow-hidden relative bg-white;
   }
 }

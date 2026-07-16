@@ -20,10 +20,10 @@ export function QrScan() {
     const startScanner = async () => {
       try {
         await scanner.start(
-          { facingMode: 'environment' },
+          { facingMode: 'user' },
           {
-            fps: 30,
-            qrbox: { width: 400, height: 400 },
+            fps: 24,
+            qrbox: { width: 240, height: 240 },
             aspectRatio: 1.0,
             disableFlip: false,
           },
@@ -81,31 +81,35 @@ export function QrScan() {
 
   return (
     <Layout>
-      <div className="flex-1 flex flex-col items-center pb-8">
-        <div className="w-full flex items-center mb-8 relative max-w-4xl mx-auto">
+      <div className="flex-1 flex flex-col items-center justify-center w-full max-w-6xl mx-auto pb-4 md:pb-6">
+        <div className="w-full flex items-center justify-center mb-8 relative">
           <button
+            type="button"
             onClick={() => navigate('/')}
-            className="absolute left-0 h-16 px-6 flex items-center gap-3 bg-white border border-gray-200 rounded-xl shadow-sm text-xl font-bold text-gray-700 active:bg-gray-100 z-10"
+            className="absolute left-0 h-16 px-6 flex items-center gap-3 bg-white border border-gray-200 rounded-xl shadow-sm text-xl font-bold text-gray-700 active:bg-gray-100 z-10 focus:outline-none focus-visible:outline-none focus-visible:ring-0"
           >
             <ArrowLeft size={28} />
             Back
           </button>
-          <h2 className="text-3xl font-bold text-gray-900 w-full text-center">
+          <h2 className="text-4xl md:text-5xl font-extrabold text-gray-900 text-center tracking-tight">
             Scan QR Code
           </h2>
         </div>
 
-        <div className="w-[600px] flex flex-col items-center">
+        <div className="w-full flex flex-col items-center justify-center gap-6">
           {cameraError ? (
-            <div className="h-[400px] w-full bg-gray-200 rounded-2xl flex flex-col items-center justify-center p-8 text-center border border-gray-300">
+            <div className="w-full max-w-[420px] h-[420px] bg-gray-200 rounded-3xl flex flex-col items-center justify-center p-8 text-center border border-gray-300 shadow-sm">
               <span className="text-2xl font-bold text-red-600 mb-4">Camera Error</span>
               <span className="text-xl text-gray-700">Unable to access the device camera. Please try entering your code manually.</span>
             </div>
           ) : (
-            <div className="w-full relative rounded-3xl overflow-hidden border-4 border-gray-300 shadow-lg bg-black">
-              <div id="qr-reader" className="w-full" style={{ border: 'none' }}></div>
+            <div className="w-full max-w-[420px] aspect-square relative rounded-3xl overflow-hidden border-4 border-gray-300 shadow-xl bg-black mx-auto">
+              <div id="qr-reader" className="absolute inset-0 w-full h-full" style={{ border: 'none' }} />
+              <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                <div className="w-[260px] h-[260px] rounded-3xl border-4 border-white/85 shadow-[0_0_0_9999px_rgba(0,0,0,0.18)]" />
+              </div>
               {error && (
-                <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-20">
+                <div className="absolute inset-0 bg-black/70 flex items-center justify-center z-20 p-6 text-center">
                   <span className="text-2xl font-bold text-white bg-red-600 px-8 py-4 rounded-xl shadow-lg">
                     {error}
                   </span>
@@ -114,7 +118,7 @@ export function QrScan() {
             </div>
           )}
 
-          <div className="mt-8 text-xl text-gray-600 font-medium">
+          <div className="text-center text-xl text-gray-600 font-medium max-w-md">
             Hold your QR code steady inside the frame
           </div>
         </div>
