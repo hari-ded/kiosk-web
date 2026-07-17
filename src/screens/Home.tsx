@@ -58,14 +58,17 @@ export function Home() {
 
   return (
     <Layout>
-      <div className="flex-1 flex flex-col items-center justify-center">
-        <div className="mb-5 text-center">
-          <h2 className="text-3xl font-bold kiosk-heading inline-flex items-center justify-center gap-4 whitespace-nowrap">
-            <img
-              src={aroxLogo}
-              alt="Arox"
-              className="w-14 h-14 rounded-2xl object-contain shrink-0 shadow-lg"
-            />
+      <div className="flex-1 flex flex-col items-center justify-center relative">
+        <div className="absolute top-[-1.5rem] left-1/2 -translate-x-1/2 z-10">
+          <img
+            src={aroxLogo}
+            alt="Arox"
+            className="w-20 h-20 md:w-24 md:h-24 rounded-[1.5rem] object-contain shrink-0 shadow-lg"
+          />
+        </div>
+
+        <div className="mb-5 text-center pt-16">
+          <h2 className="text-3xl font-bold kiosk-heading inline-flex items-center justify-center gap-2 whitespace-nowrap">
             <span>Print anything </span>
             <span
               style={{
@@ -111,5 +114,6 @@ export function Home() {
     </Layout>
   );
 }
+
 
 
