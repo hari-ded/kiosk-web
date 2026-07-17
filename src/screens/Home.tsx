@@ -63,13 +63,13 @@ export function Home() {
           <img
             src={aroxLogo}
             alt="Arox"
-            className="w-20 h-20 md:w-28 md:h-44 rounded-[1.5rem] object-contain shrink-0 shadow-lg"
+            className="w-20 h-20 md:w-24 md:h-24 rounded-[1.5rem] object-contain shrink-0 shadow-lg"
           />
         </div>
 
         <div className="mb-5 text-center pt-16">
           <h2 className="text-3xl font-bold kiosk-heading inline-flex items-center justify-center gap-2 whitespace-nowrap">
-            <span>Print anything </span>
+            <span>Print anything&nbsp;</span>
             <span
               style={{
                 backgroundImage: 'linear-gradient(90deg, #0284c7 0%, #facc15 33%, #f97316 66%, #ec4899 100%)',
