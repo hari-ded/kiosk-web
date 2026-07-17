@@ -59,15 +59,15 @@ export function Home() {
   return (
     <Layout>
       <div className="flex-1 flex flex-col items-center justify-center relative">
-        <div className="absolute top-[-1.5rem] left-1/2 -translate-x-1/2 z-10">
+        <div className="absolute top-[-3rem] left-1/2 -translate-x-1/2 z-10">
           <img
             src={aroxLogo}
             alt="Arox"
-            className="w-20 h-20 md:w-24 md:h-24 rounded-[1.5rem] object-contain shrink-0 shadow-lg"
+            className="w-28 h-28 md:w-32 md:h-32 rounded-[1.75rem] object-contain shrink-0 shadow-xl"
           />
         </div>
 
-        <div className="mb-5 text-center pt-16">
+        <div className="mb-5 text-center pt-24">
           <h2 className="text-3xl font-bold kiosk-heading inline-flex items-center justify-center gap-2 whitespace-nowrap">
             <span>Print anything&nbsp;</span>
             <span
@@ -114,6 +114,7 @@ export function Home() {
     </Layout>
   );
 }
+
 
 
 
