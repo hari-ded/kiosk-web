@@ -87,9 +87,7 @@ export function SupportOverlay({ onClose }: Props) {
     <div className="absolute inset-0 z-50 flex items-center justify-center p-8 kiosk-overlay kiosk-blur">
       <div className="rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col kiosk-panel-strong">
         <div className="h-20 border-0 px-8 flex items-center justify-between shrink-0 text-white kiosk-primary-rose">
-          <h2 className="text-2xl font-bold flex items-center gap-3">
-            <Phone size={28} />
-            Live Support
+          <h2 className="text-2xl font-bold flex items-center gap-3">  <Phone size={28} /> Live Support
           </h2>
           {(callState === 'category' || callState === 'description') && (
             <button onClick={onClose} className="p-2 rounded-full hover:bg-white/20 active:bg-white/30 transition-colors">
