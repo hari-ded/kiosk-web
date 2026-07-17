@@ -114,8 +114,7 @@ export function OtpVerify() {
             onClick={() => navigate(`/confirm/${job.id}`, { state: { job } })}
             className="absolute left-0 h-16 px-8 flex items-center gap-3 rounded-xl shadow-sm text-xl font-bold focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-muted-button"
           >
-            <ArrowLeft size={28} />
-            Back
+           &nbsp;&nbsp;&nbsp;<ArrowLeft size={28} />&nbsp;&nbsp;Back &nbsp;&nbsp;&nbsp; 
           </button>
           <h2 className="text-4xl md:text-5xl font-extrabold text-center tracking-tight kiosk-heading">
             Verify Identity
@@ -131,6 +130,7 @@ export function OtpVerify() {
             <div className="text-center mb-6">
               <p className="text-xl kiosk-text-sky mb-2 font-medium">Code sent to:</p>
               <p className="text-2xl font-bold kiosk-heading break-words">{maskEmail(job.email!)}</p>
+              <p className="text-xl kiosk-text-sky mb-2 font-small">Please check your app for the OTP</p>
             </div>
 
             <div className={`h-24 rounded-3xl flex items-center justify-center shadow-[0_12px_30px_rgba(15,23,42,0.08)] mb-4 transition-colors kiosk-panel ${error ? 'kiosk-soft-red' : 'kiosk-input'}`}>
@@ -158,8 +158,7 @@ export function OtpVerify() {
                 <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin kiosk-spinner-white"></div>
               ) : (
                 <>
-                  <Sparkles size={24} />
-                  Verify & Print
+                  Verify & Print  <Sparkles size={24} />
                 </>
               )}
             </button>

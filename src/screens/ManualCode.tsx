@@ -70,10 +70,7 @@ export function ManualCode() {
             type="button"
             onClick={() => navigate('/')}
             className="absolute left-0 h-16 px-8 flex items-center gap-3 rounded-xl shadow-sm text-xl font-bold focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-muted-button"
-          >
-            <ArrowLeft size={28} />
-            Back
-          </button>
+          >&nbsp;&nbsp;&nbsp;<ArrowLeft size={28} />&nbsp;&nbsp;Back&nbsp;&nbsp;&nbsp;</button>
           <h2 className="text-4xl md:text-5xl font-extrabold text-center tracking-tight kiosk-heading">
             Enter Pickup Code
           </h2>
@@ -110,8 +107,7 @@ export function ManualCode() {
                 <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin kiosk-spinner-white" />
               ) : (
                 <>
-                  <Sparkles size={24} />
-                  Confirm Code
+                &nbsp;&nbsp;&nbsp;&nbsp;&nbsp;Confirm Code&nbsp;<Sparkles size={24} />&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
                 </>
               )}
             </button>

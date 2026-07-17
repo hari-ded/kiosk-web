@@ -52,8 +52,7 @@ export function Layout({ children, disableInactivityWarning = false }: LayoutPro
                 onClick={inactivity.extendSession}
                 className="h-16 px-10 rounded-xl text-xl font-bold shadow-md flex items-center justify-center gap-3 focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-primary-sky"
               >
-                  <ArrowRight size={24} />
-                  Yes, keep going  
+                &nbsp;&nbsp;&nbsp;<ArrowRight size={24} />&nbsp;&nbsp;Yes, keep going&nbsp;&nbsp;&nbsp;
               </button>
             </div>
           </div>
