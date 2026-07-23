@@ -1,4 +1,4 @@
-﻿import { PrintJob, Consumables, SupportCall } from './types';
+import { PrintJob, Consumables, SupportCall } from './types';
 
 const API_URL = import.meta.env.VITE_API_URL ?? '/api';
 const KIOSK_ID = import.meta.env.VITE_KIOSK_ID || '1';
@@ -27,6 +27,37 @@ async function readJsonResponse<T>(res: Response): Promise<T | null> {
   } catch {
     return null;
   }
+}
+
+function getSupportApiBase() {
+  return API_URL.replace(/\/$/, '');
+}
+
+async function fetchSupportApi(path: string, init?: RequestInit) {
+  const primaryUrl = `${getSupportApiBase()}${path}`;
+  const fallbackUrl = `/api${path}`;
+
+  try {
+    const res = await fetch(primaryUrl, {
+      cache: 'no-store',
+      ...init,
+    });
+
+    if (res.ok || primaryUrl === fallbackUrl) {
+      return res;
+    }
+
+    if (res.status !== 404) {
+      return res;
+    }
+  } catch {
+    // Fall through to the local server route below.
+  }
+
+  return fetch(fallbackUrl, {
+    cache: 'no-store',
+    ...init,
+  });
 }
 
 export async function fetchConsumables(): Promise<Consumables> {
@@ -151,9 +182,8 @@ export async function sendAlert(alertType: string, source: string, message: stri
 }
 
 export async function createSupportCall(category: string, description: string = ''): Promise<SupportCall> {
-  const res = await fetch(`${API_URL}/support/calls`, {
+  const res = await fetchSupportApi('/support/calls', {
     method: 'POST',
-    cache: 'no-store',
     headers: defaultHeaders,
     body: JSON.stringify({ kiosk_id: KIOSK_ID, category, description })
   });
@@ -176,8 +206,7 @@ export async function createSupportCall(category: string, description: string = 
 export async function listSupportCalls(status?: string): Promise<SupportCall[]> {
   const params = new URLSearchParams();
   if (status) params.set('status', status);
-  const res = await fetch(`${API_URL}/support/calls${params.toString() ? `?${params.toString()}` : ''}`, {
-    cache: 'no-store',
+  const res = await fetchSupportApi(`/support/calls${params.toString() ? `?${params.toString()}` : ''}`, {
     headers: defaultHeaders,
   });
   if (!res.ok) throw new Error('Failed to fetch support calls');
@@ -187,8 +216,7 @@ export async function listSupportCalls(status?: string): Promise<SupportCall[]> 
 }
 
 export async function getSupportCall(callId: string): Promise<SupportCall | null> {
-  const res = await fetch(`${API_URL}/support/calls/${callId}`, {
-    cache: 'no-store',
+  const res = await fetchSupportApi(`/support/calls/${callId}`, {
     headers: defaultHeaders,
   });
   if (!res.ok) return null;
@@ -198,9 +226,8 @@ export async function getSupportCall(callId: string): Promise<SupportCall | null
 }
 
 export async function updateSupportCall(callId: string, status: SupportCall['status']): Promise<SupportCall | null> {
-  const res = await fetch(`${API_URL}/support/calls/${callId}`, {
+  const res = await fetchSupportApi(`/support/calls/${callId}`, {
     method: 'PATCH',
-    cache: 'no-store',
     headers: defaultHeaders,
     body: JSON.stringify({ status }),
   });
