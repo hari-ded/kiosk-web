@@ -1,6 +1,6 @@
 import { PrintJob, Consumables, SupportCall } from './types';
 
-const RAW_API_URL = import.meta.env.VITE_API_URL ?? '/api';
+const RAW_API_URL = import.meta.env.VITE_API_URL ?? 'https://arox-api-993539509814.asia-south1.run.app';
 
 function normalizeApiBase(url: string) {
   const trimmed = url.replace(/\/$/, '');
@@ -242,5 +242,6 @@ export async function updateSupportCall(callId: string, status: SupportCall['sta
   if (!data?.call) return null;
   return data.call as SupportCall;
 }
+
 
 
