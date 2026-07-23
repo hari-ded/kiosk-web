@@ -34,27 +34,23 @@ function getSupportApiBase() {
 }
 
 async function fetchSupportApi(path: string, init?: RequestInit) {
-  const primaryUrl = `${getSupportApiBase()}${path}`;
-  const fallbackUrl = `/api${path}`;
+  const localUrl = `/api${path}`;
+  const remoteUrl = `${getSupportApiBase()}${path}`;
 
   try {
-    const res = await fetch(primaryUrl, {
+    const localRes = await fetch(localUrl, {
       cache: 'no-store',
       ...init,
     });
 
-    if (res.ok || primaryUrl === fallbackUrl) {
-      return res;
-    }
-
-    if (res.status !== 404) {
-      return res;
+    if (localRes.ok) {
+      return localRes;
     }
   } catch {
-    // Fall through to the local server route below.
+    // Fall back to the configured API if the local kiosk server is unavailable.
   }
 
-  return fetch(fallbackUrl, {
+  return fetch(remoteUrl, {
     cache: 'no-store',
     ...init,
   });

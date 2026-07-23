@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 
@@ -320,6 +320,7 @@ async function startServer() {
 
   app.post('/api/support/calls', (req, res) => {
     const kioskId = kioskKey(req.body?.kiosk_id);
+    console.info(`[support] create kiosk=${kioskId} category=${String(req.body?.category || 'other')}`);
     const now = new Date().toISOString();
     const call: SupportCallRecord = {
       id: `call-${Date.now()}`,
@@ -338,6 +339,7 @@ async function startServer() {
 
   app.get('/api/support/calls', (req, res) => {
     const status = String(req.query.status || '').trim().toLowerCase();
+    console.info(`[support] list status=${status || 'all'}`);
     const kioskId = String(req.query.kiosk_id || '').trim();
 
     const filtered = supportCalls.filter((call) => {
@@ -350,6 +352,7 @@ async function startServer() {
   });
 
   app.get('/api/support/calls/:call_id', (req, res) => {
+    console.info(`[support] get call=${req.params.call_id}`);
     const call = getSupportCall(req.params.call_id);
     if (!call) {
       return res.status(404).json({ success: false, error: 'Support call not found' });
@@ -359,6 +362,7 @@ async function startServer() {
   });
 
   app.patch('/api/support/calls/:call_id', (req, res) => {
+    console.info(`[support] update call=${req.params.call_id} status=${String(req.body?.status || '')}`);
     const call = getSupportCall(req.params.call_id);
     if (!call) {
       return res.status(404).json({ success: false, error: 'Support call not found' });
@@ -401,3 +405,4 @@ async function startServer() {
 }
 
 startServer();
+
