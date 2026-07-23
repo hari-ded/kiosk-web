@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from 'react';
-import { createSupportCall } from '../api';
+﻿import { useEffect, useRef, useState } from 'react';
+import { createSupportCall, getSupportCall, updateSupportCall } from '../api';
 import { X, Mic, MicOff, Phone, AlertCircle, Loader2 } from 'lucide-react';
 
 const KIOSK_ID = import.meta.env.VITE_KIOSK_ID || '1';
@@ -8,7 +8,14 @@ interface Props {
   onClose: () => void;
 }
 
-type CallState = 'category' | 'description' | 'requesting_mic' | 'connecting' | 'active';
+type CallState = 'category' | 'description' | 'requesting_mic' | 'waiting' | 'active' | 'ended';
+
+const SUPPORT_CATEGORIES = [
+  { id: 'paper_jam', label: 'Paper Jam' },
+  { id: 'toner_out', label: 'Toner Issue' },
+  { id: 'payment_issue', label: 'Payment Issue' },
+  { id: 'other', label: 'Other Issue' }
+];
 
 export function SupportOverlay({ onClose }: Props) {
   const [callState, setCallState] = useState<CallState>('category');
@@ -16,14 +23,21 @@ export function SupportOverlay({ onClose }: Props) {
   const [description, setDescription] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
+  const [callId, setCallId] = useState<string | null>(null);
+  const [connectionStatus, setConnectionStatus] = useState<string>('Waiting for the next available agent');
 
   const mediaStreamRef = useRef<MediaStream | null>(null);
-  const fallbackTimerRef = useRef<number | null>(null);
+  const pollTimerRef = useRef<number | null>(null);
+  const closeTimerRef = useRef<number | null>(null);
 
   const cleanupCall = () => {
-    if (fallbackTimerRef.current) {
-      clearTimeout(fallbackTimerRef.current);
-      fallbackTimerRef.current = null;
+    if (pollTimerRef.current) {
+      clearInterval(pollTimerRef.current);
+      pollTimerRef.current = null;
+    }
+    if (closeTimerRef.current) {
+      clearTimeout(closeTimerRef.current);
+      closeTimerRef.current = null;
     }
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach(t => t.stop());
@@ -33,14 +47,50 @@ export function SupportOverlay({ onClose }: Props) {
 
   useEffect(() => cleanupCall, []);
 
-  const enterActiveState = () => {
-    if (fallbackTimerRef.current) {
-      clearTimeout(fallbackTimerRef.current);
+  useEffect(() => {
+    if (!callId || (callState !== 'waiting' && callState !== 'active')) {
+      return;
     }
-    fallbackTimerRef.current = window.setTimeout(() => {
-      setCallState('active');
-    }, 1200);
-  };
+
+    const refreshCall = async () => {
+      const liveCall = await getSupportCall(callId);
+      if (!liveCall) {
+        setError('Support request could not be found.');
+        setCallState('ended');
+        cleanupCall();
+        closeTimerRef.current = window.setTimeout(() => onClose(), 1500);
+        return;
+      }
+
+      if (liveCall.status === 'connected') {
+        setConnectionStatus('An agent joined the call');
+        setCallState('active');
+        return;
+      }
+
+      if (liveCall.status === 'closed') {
+        setConnectionStatus('The support agent ended the call');
+        setCallState('ended');
+        cleanupCall();
+        closeTimerRef.current = window.setTimeout(() => onClose(), 1800);
+        return;
+      }
+
+      setConnectionStatus('Waiting for the next available agent');
+    };
+
+    void refreshCall();
+    pollTimerRef.current = window.setInterval(() => {
+      void refreshCall();
+    }, 2000);
+
+    return () => {
+      if (pollTimerRef.current) {
+        clearInterval(pollTimerRef.current);
+        pollTimerRef.current = null;
+      }
+    };
+  }, [callId, callState, onClose]);
 
   const handleStartCall = async () => {
     setCallState('requesting_mic');
@@ -49,37 +99,42 @@ export function SupportOverlay({ onClose }: Props) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
       mediaStreamRef.current = stream;
-      setCallState('connecting');
+      setCallState('waiting');
 
       const callData = await createSupportCall(category, description);
       if (!callData || !callData.id) {
         throw new Error('Could not create support ticket');
       }
 
-      enterActiveState();
+      setCallId(callData.id);
+      setConnectionStatus('Waiting for the next available agent');
     } catch (err: any) {
       cleanupCall();
       if (err?.name === 'NotAllowedError' || err?.name === 'NotFoundError') {
         setError('Microphone permission is required for live support calls.');
-        setCallState('description');
       } else {
         setError('Failed to connect to support. Please try again.');
-        setCallState('description');
       }
+      setCallState('description');
     }
   };
 
   const toggleMute = () => {
     if (mediaStreamRef.current) {
+      const nextMuted = !isMuted;
       mediaStreamRef.current.getAudioTracks().forEach(track => {
-        track.enabled = isMuted;
+        track.enabled = !nextMuted;
       });
-      setIsMuted(!isMuted);
+      setIsMuted(nextMuted);
     }
   };
 
-  const handleEndCall = () => {
+  const handleEndCall = async () => {
+    const activeCallId = callId;
     cleanupCall();
+    if (activeCallId) {
+      void updateSupportCall(activeCallId, 'closed');
+    }
     onClose();
   };
 
@@ -87,7 +142,8 @@ export function SupportOverlay({ onClose }: Props) {
     <div className="absolute inset-0 z-50 flex items-center justify-center p-8 kiosk-overlay kiosk-blur">
       <div className="rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col kiosk-panel-strong">
         <div className="h-20 border-0 px-8 flex items-center justify-between shrink-0 text-white kiosk-primary-rose">
-          <h2 className="text-2xl font-bold flex items-center gap-3">  <Phone size={28} /> Live Support
+          <h2 className="text-2xl font-bold flex items-center gap-3">
+            <Phone size={28} /> Live Support
           </h2>
           {(callState === 'category' || callState === 'description') && (
             <button onClick={onClose} className="p-2 rounded-full hover:bg-white/20 active:bg-white/30 transition-colors">
@@ -101,12 +157,7 @@ export function SupportOverlay({ onClose }: Props) {
             <div className="flex-1 flex flex-col">
               <h3 className="text-2xl font-bold kiosk-heading mb-8 text-center">What do you need help with?</h3>
               <div className="grid grid-cols-2 gap-6 flex-1">
-                {[
-                  { id: 'paper_jam', label: 'Paper Jam' },
-                  { id: 'toner_out', label: 'Toner Issue' },
-                  { id: 'payment_issue', label: 'Payment Issue' },
-                  { id: 'other', label: 'Other Issue' }
-                ].map(cat => (
+                {SUPPORT_CATEGORIES.map(cat => (
                   <button
                     key={cat.id}
                     onClick={() => { setCategory(cat.id); setCallState('description'); }}
@@ -162,11 +213,18 @@ export function SupportOverlay({ onClose }: Props) {
             </div>
           )}
 
-          {callState === 'connecting' && (
+          {callState === 'waiting' && (
             <div className="flex-1 flex flex-col items-center justify-center text-center">
               <Loader2 size={64} className="text-rose-600 mb-8 animate-spin" />
               <h3 className="text-2xl font-bold mb-4 kiosk-heading">Connecting to Support...</h3>
-              <p className="text-xl kiosk-copy">Your request has been submitted from kiosk {KIOSK_ID}.</p>
+              <p className="text-xl kiosk-copy max-w-xl">{connectionStatus}</p>
+              <p className="text-lg text-gray-500 mt-4">Kiosk {KIOSK_ID}{callId ? ` · ${callId}` : ''}</p>
+              <button
+                onClick={handleEndCall}
+                className="mt-10 h-16 px-10 rounded-xl text-xl font-bold kiosk-muted-button"
+              >
+                Cancel Request
+              </button>
             </div>
           )}
 
@@ -179,7 +237,8 @@ export function SupportOverlay({ onClose }: Props) {
                 </div>
               </div>
               <h3 className="text-3xl font-bold text-gray-900 mb-4">Call Active</h3>
-              <p className="text-xl text-gray-500 mb-12">Speaking with support agent...</p>
+              <p className="text-xl text-gray-500 mb-3">Speaking with support agent...</p>
+              <p className="text-lg text-gray-500 mb-12">{callId ? `Call ${callId}` : connectionStatus}</p>
 
               <div className="flex gap-8 w-full max-w-sm">
                 <button
@@ -204,10 +263,16 @@ export function SupportOverlay({ onClose }: Props) {
               </div>
             </div>
           )}
+
+          {callState === 'ended' && (
+            <div className="flex-1 flex flex-col items-center justify-center text-center">
+              <Phone size={64} className="text-gray-400 mb-8" />
+              <h3 className="text-2xl font-bold mb-4 kiosk-heading">Support Call Ended</h3>
+              <p className="text-xl kiosk-copy">{connectionStatus}</p>
+            </div>
+          )}
         </div>
       </div>
     </div>
   );
 }
-
-

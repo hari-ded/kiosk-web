@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 
@@ -43,6 +43,9 @@ type SupportCallRecord = {
   description: string;
   status: string;
   created_at: string;
+  updated_at: string;
+  connected_at: string | null;
+  closed_at: string | null;
 };
 
 const paperCapacity = 500;
@@ -169,6 +172,10 @@ function getOrCreateJob(code: string, kioskId: string) {
   jobsByPickupCode.set(normalized, job);
   jobsByUploadId.set(job.upload_id, job);
   return job;
+}
+
+function getSupportCall(callId: string) {
+  return supportCalls.find((item) => item.id === callId) || null;
 }
 
 async function startServer() {
@@ -313,16 +320,65 @@ async function startServer() {
 
   app.post('/api/support/calls', (req, res) => {
     const kioskId = kioskKey(req.body?.kiosk_id);
+    const now = new Date().toISOString();
     const call: SupportCallRecord = {
       id: `call-${Date.now()}`,
       kiosk_id: kioskId,
       category: String(req.body?.category || 'other'),
       description: String(req.body?.description || ''),
       status: 'open',
-      created_at: new Date().toISOString(),
+      created_at: now,
+      updated_at: now,
+      connected_at: null,
+      closed_at: null,
     };
     supportCalls.push(call);
-    res.json({ success: true, id: call.id, call_id: call.id, status: call.status });
+    res.json({ success: true, id: call.id, call_id: call.id, status: call.status, call });
+  });
+
+  app.get('/api/support/calls', (req, res) => {
+    const status = String(req.query.status || '').trim().toLowerCase();
+    const kioskId = String(req.query.kiosk_id || '').trim();
+
+    const filtered = supportCalls.filter((call) => {
+      const statusMatches = !status || call.status.toLowerCase() === status;
+      const kioskMatches = !kioskId || call.kiosk_id === kioskId;
+      return statusMatches && kioskMatches;
+    });
+
+    res.json({ success: true, calls: filtered });
+  });
+
+  app.get('/api/support/calls/:call_id', (req, res) => {
+    const call = getSupportCall(req.params.call_id);
+    if (!call) {
+      return res.status(404).json({ success: false, error: 'Support call not found' });
+    }
+
+    return res.json({ success: true, call });
+  });
+
+  app.patch('/api/support/calls/:call_id', (req, res) => {
+    const call = getSupportCall(req.params.call_id);
+    if (!call) {
+      return res.status(404).json({ success: false, error: 'Support call not found' });
+    }
+
+    const nextStatus = String(req.body?.status || '').trim().toLowerCase();
+    if (!['open', 'connected', 'closed'].includes(nextStatus)) {
+      return res.status(400).json({ success: false, error: 'Invalid support call status' });
+    }
+
+    call.status = nextStatus;
+    call.updated_at = new Date().toISOString();
+    if (nextStatus === 'connected' && !call.connected_at) {
+      call.connected_at = call.updated_at;
+    }
+    if (nextStatus === 'closed') {
+      call.closed_at = call.updated_at;
+    }
+
+    return res.json({ success: true, call });
   });
 
   if (process.env.NODE_ENV !== 'production') {

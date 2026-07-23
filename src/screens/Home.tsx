@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { fetchConsumables } from '../api';
 import { Layout } from '../components/Layout';
 import { QrCode, Keyboard } from 'lucide-react';
@@ -8,6 +8,7 @@ import { playSound } from '../utils/audio';
 
 export function Home() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -20,6 +21,7 @@ export function Home() {
 
   useEffect(() => {
     let mounted = true;
+    setLoading(true);
 
     fetchConsumables()
       .then((data) => {
@@ -44,7 +46,7 @@ export function Home() {
     return () => {
       mounted = false;
     };
-  }, [navigate]);
+  }, [location.key, navigate]);
 
   if (loading) {
     return (
@@ -114,7 +116,3 @@ export function Home() {
     </Layout>
   );
 }
-
-
-
-

@@ -1,4 +1,4 @@
-export interface PrintJob {
+﻿export interface PrintJob {
   id: string;
   filename: string;
   pages: number;
@@ -21,4 +21,16 @@ export interface Consumables {
   last_paper_refill: string;
   last_toner_refill: string;
   updated_at: string;
+}
+
+export interface SupportCall {
+  id: string;
+  kiosk_id: string;
+  category: string;
+  description: string;
+  status: 'open' | 'connected' | 'closed';
+  created_at: string;
+  updated_at: string;
+  connected_at: string | null;
+  closed_at: string | null;
 }

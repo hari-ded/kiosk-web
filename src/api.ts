@@ -1,6 +1,6 @@
-import { PrintJob, Consumables } from './types';
+﻿import { PrintJob, Consumables, SupportCall } from './types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'https://arox-api-993539509814.asia-south1.run.app/api';
+const API_URL = import.meta.env.VITE_API_URL ?? '/api';
 const KIOSK_ID = import.meta.env.VITE_KIOSK_ID || '1';
 
 const defaultHeaders = {
@@ -79,7 +79,7 @@ export async function validateJobCode(code: string): Promise<{ job?: PrintJob, e
         email: data.email || null
       }
     };
-  } catch (error) {
+  } catch {
     return { error: 'Network error or server unavailable' };
   }
 }
@@ -150,7 +150,7 @@ export async function sendAlert(alertType: string, source: string, message: stri
   return res.ok;
 }
 
-export async function createSupportCall(category: string, description: string = ''): Promise<any> {
+export async function createSupportCall(category: string, description: string = ''): Promise<SupportCall> {
   const res = await fetch(`${API_URL}/support/calls`, {
     method: 'POST',
     cache: 'no-store',
@@ -161,7 +161,51 @@ export async function createSupportCall(category: string, description: string = 
   const data = await readJsonResponse<any>(res);
   if (!data) throw new Error('Failed to create support call');
   return {
-    ...data,
     id: data.id || data.call_id,
+    kiosk_id: String(data.kiosk_id || KIOSK_ID),
+    category: String(data.category || category),
+    description: String(data.description || description),
+    status: (data.status || 'open') as SupportCall['status'],
+    created_at: String(data.created_at || new Date().toISOString()),
+    updated_at: String(data.updated_at || data.created_at || new Date().toISOString()),
+    connected_at: data.connected_at || null,
+    closed_at: data.closed_at || null,
   };
+}
+
+export async function listSupportCalls(status?: string): Promise<SupportCall[]> {
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
+  const res = await fetch(`${API_URL}/support/calls${params.toString() ? `?${params.toString()}` : ''}`, {
+    cache: 'no-store',
+    headers: defaultHeaders,
+  });
+  if (!res.ok) throw new Error('Failed to fetch support calls');
+  const data = await readJsonResponse<any>(res);
+  if (!data) throw new Error('Failed to fetch support calls');
+  return Array.isArray(data.calls) ? (data.calls as SupportCall[]) : [];
+}
+
+export async function getSupportCall(callId: string): Promise<SupportCall | null> {
+  const res = await fetch(`${API_URL}/support/calls/${callId}`, {
+    cache: 'no-store',
+    headers: defaultHeaders,
+  });
+  if (!res.ok) return null;
+  const data = await readJsonResponse<any>(res);
+  if (!data?.call) return null;
+  return data.call as SupportCall;
+}
+
+export async function updateSupportCall(callId: string, status: SupportCall['status']): Promise<SupportCall | null> {
+  const res = await fetch(`${API_URL}/support/calls/${callId}`, {
+    method: 'PATCH',
+    cache: 'no-store',
+    headers: defaultHeaders,
+    body: JSON.stringify({ status }),
+  });
+  if (!res.ok) return null;
+  const data = await readJsonResponse<any>(res);
+  if (!data?.call) return null;
+  return data.call as SupportCall;
 }
