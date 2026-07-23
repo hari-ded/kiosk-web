@@ -1,6 +1,16 @@
 import { PrintJob, Consumables, SupportCall } from './types';
 
-const API_URL = import.meta.env.VITE_API_URL ?? '/api';
+const RAW_API_URL = import.meta.env.VITE_API_URL ?? '/api';
+
+function normalizeApiBase(url: string) {
+  const trimmed = url.replace(/\/$/, '');
+  if (trimmed === '/api' || trimmed.endsWith('/api')) {
+    return trimmed;
+  }
+  return `${trimmed}/api`;
+}
+
+const API_URL = normalizeApiBase(RAW_API_URL);
 const KIOSK_ID = import.meta.env.VITE_KIOSK_ID || '1';
 
 const defaultHeaders = {
@@ -232,4 +242,5 @@ export async function updateSupportCall(callId: string, status: SupportCall['sta
   if (!data?.call) return null;
   return data.call as SupportCall;
 }
+
 
