@@ -34,23 +34,23 @@ function getSupportApiBase() {
 }
 
 async function fetchSupportApi(path: string, init?: RequestInit) {
-  const localUrl = `/api${path}`;
   const remoteUrl = `${getSupportApiBase()}${path}`;
+  const localUrl = `/api${path}`;
 
   try {
-    const localRes = await fetch(localUrl, {
+    const remoteRes = await fetch(remoteUrl, {
       cache: 'no-store',
       ...init,
     });
 
-    if (localRes.ok) {
-      return localRes;
+    if (remoteRes.ok) {
+      return remoteRes;
     }
   } catch {
-    // Fall back to the configured API if the local kiosk server is unavailable.
+    // Fall through to the same-origin kiosk server if the backend is unavailable.
   }
 
-  return fetch(remoteUrl, {
+  return fetch(localUrl, {
     cache: 'no-store',
     ...init,
   });
@@ -232,3 +232,4 @@ export async function updateSupportCall(callId: string, status: SupportCall['sta
   if (!data?.call) return null;
   return data.call as SupportCall;
 }
+
