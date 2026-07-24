@@ -83,6 +83,23 @@ export async function fetchConsumables(): Promise<Consumables> {
   };
 }
 
+export async function fetchKioskConsumables(kioskId: string | number): Promise<Consumables> {
+  const res = await fetch(`${API_URL}/kiosks/${kioskId}/consumables`, {
+    cache: 'no-store',
+    headers: defaultHeaders,
+  });
+  if (!res.ok) throw new Error('Failed to fetch kiosk consumables');
+  const data = await readJsonResponse<any>(res);
+  if (!data) throw new Error('Failed to fetch kiosk consumables');
+  return {
+    ...data,
+    paper_capacity: Number(data.paper_capacity) || 0,
+    paper_remaining: Number(data.paper_remaining) || 0,
+    toner_capacity: Number(data.toner_capacity) || 0,
+    toner_remaining: Number(data.toner_remaining) || 0,
+  };
+}
+
 export async function validateJobCode(code: string): Promise<{ job?: PrintJob, error?: string }> {
   try {
     let res = await fetch(`${API_URL}/job/${code}?kiosk_id=${KIOSK_ID}`, { cache: 'no-store', headers: defaultHeaders });
@@ -242,6 +259,7 @@ export async function updateSupportCall(callId: string, status: SupportCall['sta
   if (!data?.call) return null;
   return data.call as SupportCall;
 }
+
 
 
 
