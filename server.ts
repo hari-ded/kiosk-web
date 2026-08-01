@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 
@@ -285,13 +285,8 @@ async function startServer() {
       last_toner_refill: consumables.last_toner_refill,
     });
 
-    job.status = 'printing';
-    setTimeout(() => {
-      const liveJob = jobsByUploadId.get(job.upload_id);
-      if (liveJob && liveJob.status === 'printing') {
-        liveJob.status = 'completed';
-      }
-    }, Math.max(5000, job.estimated_time_seconds * 1000));
+    // Let the VM own the live print-state transition.
+    job.status = 'onKiosk';
 
     return res.json({ success: true, upload_id: job.upload_id, status: job.status });
   });
@@ -405,4 +400,5 @@ async function startServer() {
 }
 
 startServer();
+
 
