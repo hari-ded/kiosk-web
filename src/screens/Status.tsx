@@ -6,6 +6,7 @@ import { Layout } from '../components/Layout';
 import { Printer, CheckCircle2, XCircle, Home } from 'lucide-react';
 import { playSound } from '../utils/audio';
 import { summarizePrintJob } from '../utils/printJob';
+import { createPrinterSocket, type PrinterSocket } from '../utils/printerTransport';
 
 const SUCCESS_STATES = ['printed', 'completed', 'complete', 'success', 'done', 'finished'];
 const FAILURE_STATES = ['failed', 'failure', 'error', 'errored', 'aborted', 'cancelled', 'canceled'];
@@ -17,6 +18,10 @@ function readStoredJob() {
   } catch {
     return undefined;
   }
+}
+
+function normalizeStatus(value: unknown) {
+  return String(value || '').trim().toLowerCase();
 }
 
 export function Status() {
@@ -38,6 +43,9 @@ export function Status() {
   const completionDelayRef = useRef<number | null>(null);
   const completionReturnRef = useRef<number | null>(null);
   const completionScheduledRef = useRef(false);
+  const realtimeConnectedRef = useRef(false);
+  const jobRoomJoinedRef = useRef(false);
+  const socketRef = useRef<PrinterSocket | null>(null);
 
   useEffect(() => {
     statusRef.current = status;
@@ -56,7 +64,7 @@ export function Status() {
   }, [status]);
 
   useEffect(() => {
-    if (!job || !summary) {
+    if (!job) {
       navigate('/', { replace: true });
       return;
     }
@@ -122,10 +130,89 @@ export function Status() {
       }, Math.round(totalWaitSeconds * 1000));
     };
 
+    const applyBackendStatus = (rawStatus: unknown) => {
+      if (!mountedRef.current || completionScheduledRef.current) return;
+
+      const lowerStatus = normalizeStatus(rawStatus);
+      if (!lowerStatus) return;
+
+      if (SUCCESS_STATES.includes(lowerStatus)) {
+        scheduleCompletion();
+        return;
+      }
+
+      if (FAILURE_STATES.includes(lowerStatus)) {
+        setStatus('failed');
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
+        return;
+      }
+
+      if (lowerStatus === 'printing') {
+        setStatus('printing');
+        return;
+      }
+
+      setStatus('processing');
+    };
+
+    const attachJobRoom = () => {
+      const socket = socketRef.current;
+      if (!socket || !socket.connected || jobRoomJoinedRef.current) {
+        return;
+      }
+
+      socket.emit('printer:job-join', {
+        upload_id: job.id,
+        job_id: job.id,
+      });
+      jobRoomJoinedRef.current = true;
+    };
+
+    const connectRealtime = () => {
+      const socket = createPrinterSocket();
+      socketRef.current = socket;
+
+      socket.on('connect', () => {
+        realtimeConnectedRef.current = true;
+        jobRoomJoinedRef.current = false;
+        attachJobRoom();
+      });
+
+      socket.on('disconnect', () => {
+        realtimeConnectedRef.current = false;
+        jobRoomJoinedRef.current = false;
+      });
+
+      socket.on('printer:job-joined', payload => {
+        if (String((payload as { upload_id?: string | number } | null | undefined)?.upload_id ?? '') !== String(job.id)) {
+          return;
+        }
+        jobRoomJoinedRef.current = true;
+      });
+
+      socket.on('printer:job-status', payload => {
+        const uploadId = String((payload as { upload_id?: string | number } | null | undefined)?.upload_id ?? '');
+        if (uploadId !== String(job.id)) {
+          return;
+        }
+
+        applyBackendStatus(
+          (payload as { status?: string; job_status?: string; state?: string } | null | undefined)?.status
+          ?? (payload as { status?: string; job_status?: string; state?: string } | null | undefined)?.job_status
+          ?? (payload as { status?: string; job_status?: string; state?: string } | null | undefined)?.state
+        );
+      });
+
+      socket.connect();
+    };
+
     const pollStatus = async () => {
       try {
         const currentStatus = await checkJobStatus(job.id);
-        const lowerStatus = currentStatus.toLowerCase();
+        const lowerStatus = normalizeStatus(currentStatus);
 
         if (!mountedRef.current || completionScheduledRef.current) return;
 
@@ -143,19 +230,17 @@ export function Status() {
           return;
         }
 
-        if (lowerStatus === 'printing') {
-          setStatus('printing');
-        } else {
-          setStatus('processing');
-        }
-
-        schedulePoll(document.hidden ? 15000 : 3000);
+        applyBackendStatus(lowerStatus);
+        schedulePoll(realtimeConnectedRef.current ? (document.hidden ? 30000 : 15000) : (document.hidden ? 15000 : 3000));
       } catch {
         if (mountedRef.current && !completionScheduledRef.current) {
-          schedulePoll(5000);
+          schedulePoll(realtimeConnectedRef.current ? 10000 : 5000);
         }
       }
     };
+
+    connectRealtime();
+    void pollStatus();
 
     progressIntervalRef.current = window.setInterval(() => {
       setProgress(prev => {
@@ -164,11 +249,16 @@ export function Status() {
       });
     }, 1000);
 
-    void pollStatus();
-
     return () => {
       mountedRef.current = false;
       clearTimers();
+      realtimeConnectedRef.current = false;
+      jobRoomJoinedRef.current = false;
+      if (socketRef.current) {
+        socketRef.current.removeAllListeners();
+        socketRef.current.disconnect();
+        socketRef.current = null;
+      }
     };
   }, [job, navigate, totalWaitSeconds]);
 
@@ -272,7 +362,3 @@ export function Status() {
     </Layout>
   );
 }
-
-
-
-
