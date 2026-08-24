@@ -28,11 +28,9 @@ This kiosk app is built to support a fast, reliable front desk or public termina
 - `src/components/SupportOverlay.tsx` manages the kiosk-side support call flow
 - `src/screens/AgentConsole.tsx` provides the admin or care-team support console
 
-The app is designed to talk to the remote AROX backend by default:
+The app is designed to talk to the same-origin `/api` proxy for browser API calls. The printer socket still connects to the backend root directly unless you override it with `VITE_PRINTER_BACKEND_URL`.
 
-- `https://arox-api-993539509814.asia-south1.run.app`
-
-The API layer normalizes that base URL and appends `/api` automatically when needed.
+The API layer normalizes its base URL and appends `/api` automatically when needed. The printer socket uses a separate backend-root setting.
 
 ## Getting Started
 
@@ -54,8 +52,9 @@ Copy `.env.example` to your local environment file and adjust the values if need
 
 Key variables:
 
-- `VITE_API_URL` - AROX backend base URL. The default points to the production backend.
+- `VITE_API_URL` - API base URL for the browser. The default is `/api`, which should be proxied server-side in production.
 - `VITE_KIOSK_ID` - Kiosk identifier used for consumables, jobs, alerts, and support calls.
+- `VITE_PRINTER_BACKEND_URL` - Backend root used by the printer realtime socket. Defaults to the production backend root.
 - `GEMINI_API_KEY` - Required only if you are using the Gemini-backed features in this environment.
 - `APP_URL` - Host URL for the deployed app.
 
@@ -63,7 +62,10 @@ Example:
 
 ```env
 VITE_KIOSK_ID="1"
-VITE_API_URL="https://arox-api-993539509814.asia-south1.run.app/api"
+VITE_API_URL="/api"
+VITE_PRINTER_BACKEND_URL="https://arox-api-993539509814.asia-south1.run.app"
+BACKEND_API_URL="https://arox-api-993539509814.asia-south1.run.app/api"
+BACKEND_SERVICE_TOKEN="your-server-side-token"
 ```
 
 ### Run Locally

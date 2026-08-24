@@ -1,6 +1,6 @@
 import { PrintJob, Consumables, SupportCall } from './types';
 
-const RAW_API_URL = import.meta.env.VITE_API_URL ?? 'https://arox-api-993539509814.asia-south1.run.app';
+const RAW_API_URL = import.meta.env.VITE_API_URL ?? '/api';
 
 function normalizeApiBase(url: string) {
   const trimmed = url.replace(/\/$/, '');
@@ -12,12 +12,9 @@ function normalizeApiBase(url: string) {
 
 const API_URL = normalizeApiBase(RAW_API_URL);
 const KIOSK_ID = import.meta.env.VITE_KIOSK_ID || '1';
-// The kiosk is deployed as a static Vercel site, so relative /api requests
-// resolve to the Vercel origin (which does not host the Express proxy). Job
-// operations must call the configured AROX backend directly.
+// The kiosk talks to the same-origin /api proxy in production and the local
+// Node server in development. Both routes forward to the backend securely.
 const KIOSK_API_URL = API_URL;
-const BACKEND_BEARER_TOKEN = String(import.meta.env.VITE_BACKEND_BEARER_TOKEN || '').trim();
-
 const defaultHeaders = {
   'Content-Type': 'application/json',
   'Cache-Control': 'no-store'
@@ -26,7 +23,6 @@ const defaultHeaders = {
 function buildHeaders(extra: HeadersInit = {}): HeadersInit {
   return {
     ...defaultHeaders,
-    ...(BACKEND_BEARER_TOKEN ? { Authorization: `Bearer ${BACKEND_BEARER_TOKEN}` } : {}),
     ...extra,
   };
 }
