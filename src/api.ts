@@ -12,12 +12,24 @@ function normalizeApiBase(url: string) {
 
 const API_URL = normalizeApiBase(RAW_API_URL);
 const KIOSK_ID = import.meta.env.VITE_KIOSK_ID || '1';
-const KIOSK_PROXY_API_URL = '/api';
+// The kiosk is deployed as a static Vercel site, so relative /api requests
+// resolve to the Vercel origin (which does not host the Express proxy). Job
+// operations must call the configured AROX backend directly.
+const KIOSK_API_URL = API_URL;
+const BACKEND_BEARER_TOKEN = String(import.meta.env.VITE_BACKEND_BEARER_TOKEN || '').trim();
 
 const defaultHeaders = {
   'Content-Type': 'application/json',
   'Cache-Control': 'no-store'
 };
+
+function buildHeaders(extra: HeadersInit = {}): HeadersInit {
+  return {
+    ...defaultHeaders,
+    ...(BACKEND_BEARER_TOKEN ? { Authorization: `Bearer ${BACKEND_BEARER_TOKEN}` } : {}),
+    ...extra,
+  };
+}
 
 function normalizePickupCode(code: string) {
   return /^\d{6}$/.test(code) ? `ARX-${code}` : code;
@@ -41,8 +53,7 @@ async function readJsonResponse<T>(res: Response): Promise<T | null> {
 }
 
 async function fetchSupportApi(path: string, init?: RequestInit) {
-  const localUrl = `/api${path}`;
-  return fetch(localUrl, {
+  return fetch(`${API_URL}${path}`, {
     cache: 'no-store',
     ...init,
   });
@@ -51,7 +62,7 @@ async function fetchSupportApi(path: string, init?: RequestInit) {
 export async function fetchConsumables(): Promise<Consumables> {
   const res = await fetch(`${API_URL}/kiosks/${KIOSK_ID}/consumables`, {
     cache: 'no-store',
-    headers: defaultHeaders
+    headers: buildHeaders()
   });
   if (!res.ok) throw new Error('Failed to fetch consumables');
   const data = await readJsonResponse<any>(res);
@@ -67,11 +78,11 @@ export async function fetchConsumables(): Promise<Consumables> {
 
 export async function validateJobCode(code: string): Promise<{ job?: PrintJob, error?: string }> {
   try {
-    let res = await fetch(`${KIOSK_PROXY_API_URL}/job/${code}?kiosk_id=${KIOSK_ID}`, { cache: 'no-store', headers: defaultHeaders });
-
-    if (!res.ok && /^\d{6}$/.test(code)) {
-      res = await fetch(`${KIOSK_PROXY_API_URL}/job/ARX-${code}?kiosk_id=${KIOSK_ID}`, { cache: 'no-store', headers: defaultHeaders });
-    }
+    const pickupCode = normalizePickupCode(code);
+    const res = await fetch(`${KIOSK_API_URL}/job/${encodeURIComponent(pickupCode)}?kiosk_id=${KIOSK_ID}`, {
+      cache: 'no-store',
+      headers: buildHeaders()
+    });
 
     const data = await readJsonResponse<any>(res);
     if (!data) {
@@ -93,7 +104,7 @@ export async function validateJobCode(code: string): Promise<{ job?: PrintJob, e
         pages_per_sheet: Number(data.pages_per_sheet ?? data.page_per_sheet ?? 1) || 1,
         duplex: parseBoolean(data.duplex ?? data.double_sided ?? data.is_duplex ?? data.sides),
         status: data.status || 'unknown',
-        pickup_code: normalizePickupCode(code),
+        pickup_code: pickupCode,
         estimated_time_seconds: Number(data.estimated_time_seconds) || 0,
         email: data.email || null
       }
@@ -105,10 +116,10 @@ export async function validateJobCode(code: string): Promise<{ job?: PrintJob, e
 
 export async function requestOtp(code: string): Promise<boolean> {
   const pickupCode = normalizePickupCode(code);
-  const res = await fetch(`${KIOSK_PROXY_API_URL}/job/${pickupCode}/request_release_otp`, {
+  const res = await fetch(`${KIOSK_API_URL}/job/${pickupCode}/request_release_otp`, {
     method: 'POST',
     cache: 'no-store',
-    headers: defaultHeaders,
+    headers: buildHeaders(),
     body: JSON.stringify({ kiosk_id: KIOSK_ID })
   });
   if (!res.ok) return false;
@@ -119,10 +130,10 @@ export async function requestOtp(code: string): Promise<boolean> {
 
 export async function verifyOtp(code: string, otp: string): Promise<boolean> {
   const pickupCode = normalizePickupCode(code);
-  const res = await fetch(`${KIOSK_PROXY_API_URL}/job/${pickupCode}/verify_release_otp`, {
+  const res = await fetch(`${KIOSK_API_URL}/job/${pickupCode}/verify_release_otp`, {
     method: 'POST',
     cache: 'no-store',
-    headers: defaultHeaders,
+    headers: buildHeaders(),
     body: JSON.stringify({ kiosk_id: KIOSK_ID, otp })
   });
   if (!res.ok) return false;
@@ -133,10 +144,10 @@ export async function verifyOtp(code: string, otp: string): Promise<boolean> {
 
 export async function releaseJob(code: string): Promise<boolean> {
   const pickupCode = normalizePickupCode(code);
-  const res = await fetch(`${KIOSK_PROXY_API_URL}/release_job`, {
+  const res = await fetch(`${KIOSK_API_URL}/release_job`, {
     method: 'POST',
     cache: 'no-store',
-    headers: defaultHeaders,
+    headers: buildHeaders(),
     body: JSON.stringify({ pickup_code: pickupCode, kiosk_id: KIOSK_ID })
   });
   if (!res.ok) return false;
@@ -146,31 +157,23 @@ export async function releaseJob(code: string): Promise<boolean> {
 }
 
 export async function checkJobStatus(uploadId: string): Promise<string> {
-  const localUrl = `/api/job_status/${uploadId}`;
   try {
-    const localRes = await fetch(localUrl, { cache: 'no-store', headers: defaultHeaders });
-    if (localRes.ok) {
-      const data = await readJsonResponse<any>(localRes);
-      const localStatus = String(data?.job_status ?? data?.status ?? '').trim();
-      if (localStatus) {
-        return localStatus;
-      }
-    }
+    const res = await fetch(`${API_URL}/job_status/${uploadId}`, {
+      cache: 'no-store',
+      headers: buildHeaders()
+    });
+    const data = await readJsonResponse<any>(res);
+    if (!data) return 'unknown';
+    return String(data.job_status ?? data.status ?? 'unknown');
   } catch {
-    // Fall back to the remote backend only if the kiosk proxy is unavailable.
+    return 'unknown';
   }
-
-  const res = await fetch(localUrl, { cache: 'no-store', headers: defaultHeaders });
-  const data = await readJsonResponse<any>(res);
-  if (!data) return 'unknown';
-  return String(data.job_status ?? data.status ?? 'unknown');
 }
-
 export async function sendAlert(alertType: string, source: string, message: string, extra: any = {}): Promise<boolean> {
   const res = await fetch(`${API_URL}/kiosks/${KIOSK_ID}/alerts`, {
     method: 'POST',
     cache: 'no-store',
-    headers: defaultHeaders,
+    headers: buildHeaders(),
     body: JSON.stringify({
       alert_type: alertType,
       source,
@@ -186,7 +189,7 @@ export async function sendAlert(alertType: string, source: string, message: stri
 export async function createSupportCall(category: string, description: string = ''): Promise<SupportCall> {
   const res = await fetchSupportApi('/support/calls', {
     method: 'POST',
-    headers: defaultHeaders,
+    headers: buildHeaders(),
     body: JSON.stringify({ kiosk_id: KIOSK_ID, category, description })
   });
   if (!res.ok) throw new Error('Failed to create support call');
@@ -212,7 +215,7 @@ export async function listSupportCalls(status?: string): Promise<SupportCall[]> 
   const params = new URLSearchParams();
   if (status) params.set('status', status);
   const res = await fetchSupportApi(`/support/calls${params.toString() ? `?${params.toString()}` : ''}`, {
-    headers: defaultHeaders,
+    headers: buildHeaders(),
   });
   if (!res.ok) throw new Error('Failed to fetch support calls');
   const data = await readJsonResponse<any>(res);
@@ -221,7 +224,7 @@ export async function listSupportCalls(status?: string): Promise<SupportCall[]> 
 }
 
 export async function getSupportCall(callId: string, callToken?: string): Promise<SupportCall | null> {
-  const headers = callToken ? { ...defaultHeaders, 'X-AROX-CALL-TOKEN': callToken } : defaultHeaders;
+  const headers = callToken ? buildHeaders({ 'X-AROX-CALL-TOKEN': callToken }) : buildHeaders();
   const res = await fetchSupportApi(`/support/calls/${callId}`, {
     headers,
   });
@@ -232,7 +235,7 @@ export async function getSupportCall(callId: string, callToken?: string): Promis
 }
 
 export async function updateSupportCall(callId: string, status: SupportCall['status'], callToken?: string): Promise<SupportCall | null> {
-  const headers = callToken ? { ...defaultHeaders, 'X-AROX-CALL-TOKEN': callToken } : defaultHeaders;
+  const headers = callToken ? buildHeaders({ 'X-AROX-CALL-TOKEN': callToken }) : buildHeaders();
   const res = await fetchSupportApi(`/support/calls/${callId}`, {
     method: 'PATCH',
     headers,

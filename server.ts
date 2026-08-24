@@ -1,4 +1,4 @@
-﻿import express from 'express';
+import express from 'express';
 import crypto from 'crypto';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
@@ -328,7 +328,7 @@ async function startServer() {
     app.get('/api/job/:code', async (req, res) => {
       const kioskId = String(req.query.kiosk_id || '').trim();
       const query = kioskId ? `?kiosk_id=${encodeURIComponent(kioskId)}` : '';
-      const backendRes = await proxyBackend(`/api/job/${req.params.code}${query}`);
+      const backendRes = await proxyBackend(`/job/${req.params.code}${query}`);
       if (!backendRes) {
         return res.status(503).json({ success: false, error: 'Backend proxy not configured' });
       }
@@ -336,7 +336,7 @@ async function startServer() {
     });
 
     app.post('/api/job/:code/request_release_otp', async (req, res) => {
-      const backendRes = await proxyBackend(`/api/job/${req.params.code}/request_release_otp`, {
+      const backendRes = await proxyBackend(`/job/${req.params.code}/request_release_otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(req.body || {}),
@@ -348,7 +348,7 @@ async function startServer() {
     });
 
     app.post('/api/job/:code/verify_release_otp', async (req, res) => {
-      const backendRes = await proxyBackend(`/api/job/${req.params.code}/verify_release_otp`, {
+      const backendRes = await proxyBackend(`/job/${req.params.code}/verify_release_otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(req.body || {}),
@@ -360,7 +360,7 @@ async function startServer() {
     });
 
     app.post('/api/job/:code/request_otp', async (req, res) => {
-      const backendRes = await proxyBackend(`/api/job/${req.params.code}/request_otp`, {
+      const backendRes = await proxyBackend(`/job/${req.params.code}/request_otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(req.body || {}),
@@ -372,7 +372,7 @@ async function startServer() {
     });
 
     app.post('/api/job/:code/verify_otp', async (req, res) => {
-      const backendRes = await proxyBackend(`/api/job/${req.params.code}/verify_otp`, {
+      const backendRes = await proxyBackend(`/job/${req.params.code}/verify_otp`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(req.body || {}),
@@ -384,7 +384,7 @@ async function startServer() {
     });
 
     app.post('/api/release_job', async (req, res) => {
-      const backendRes = await proxyBackend('/api/release_job', {
+      const backendRes = await proxyBackend('/release_job', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(req.body || {}),
@@ -547,7 +547,7 @@ async function startServer() {
 
   app.post('/api/support/calls', async (req, res) => {
     if (BACKEND_SERVICE_TOKEN) {
-      const backendRes = await proxyBackend('/api/support/calls', {
+      const backendRes = await proxyBackend('/support/calls', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(req.body || {}),
@@ -586,7 +586,7 @@ async function startServer() {
       const kioskId = String(req.query.kiosk_id || '').trim();
       if (status) query.set('status', status);
       if (kioskId) query.set('kiosk_id', kioskId);
-      const backendRes = await proxyBackend(`/api/support/calls${query.toString() ? `?${query.toString()}` : ''}`);
+      const backendRes = await proxyBackend(`/support/calls${query.toString() ? `?${query.toString()}` : ''}`);
       if (!backendRes) {
         return res.status(503).json({ success: false, error: 'Backend proxy not configured' });
       }
@@ -610,7 +610,7 @@ async function startServer() {
 
   app.get('/api/support/calls/:call_id', async (req, res) => {
     if (BACKEND_SERVICE_TOKEN) {
-      const backendRes = await proxyBackend(`/api/support/calls/${req.params.call_id}`);
+      const backendRes = await proxyBackend(`/support/calls/${req.params.call_id}`);
       if (!backendRes) {
         return res.status(503).json({ success: false, error: 'Backend proxy not configured' });
       }
@@ -631,7 +631,7 @@ async function startServer() {
 
   app.patch('/api/support/calls/:call_id', async (req, res) => {
     if (BACKEND_SERVICE_TOKEN) {
-      const backendRes = await proxyBackend(`/api/support/calls/${req.params.call_id}`, {
+      const backendRes = await proxyBackend(`/support/calls/${req.params.call_id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(req.body || {}),
