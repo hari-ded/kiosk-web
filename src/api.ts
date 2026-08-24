@@ -12,6 +12,7 @@ function normalizeApiBase(url: string) {
 
 const API_URL = normalizeApiBase(RAW_API_URL);
 const KIOSK_ID = import.meta.env.VITE_KIOSK_ID || '1';
+const KIOSK_PROXY_API_URL = '/api';
 
 const defaultHeaders = {
   'Content-Type': 'application/json',
@@ -39,27 +40,8 @@ async function readJsonResponse<T>(res: Response): Promise<T | null> {
   }
 }
 
-function getSupportApiBase() {
-  return API_URL.replace(/\/$/, '');
-}
-
 async function fetchSupportApi(path: string, init?: RequestInit) {
-  const remoteUrl = `${getSupportApiBase()}${path}`;
   const localUrl = `/api${path}`;
-
-  try {
-    const remoteRes = await fetch(remoteUrl, {
-      cache: 'no-store',
-      ...init,
-    });
-
-    if (remoteRes.ok) {
-      return remoteRes;
-    }
-  } catch {
-    // Fall through to the same-origin kiosk server if the backend is unavailable.
-  }
-
   return fetch(localUrl, {
     cache: 'no-store',
     ...init,
@@ -85,10 +67,10 @@ export async function fetchConsumables(): Promise<Consumables> {
 
 export async function validateJobCode(code: string): Promise<{ job?: PrintJob, error?: string }> {
   try {
-    let res = await fetch(`${API_URL}/job/${code}?kiosk_id=${KIOSK_ID}`, { cache: 'no-store', headers: defaultHeaders });
+    let res = await fetch(`${KIOSK_PROXY_API_URL}/job/${code}?kiosk_id=${KIOSK_ID}`, { cache: 'no-store', headers: defaultHeaders });
 
     if (!res.ok && /^\d{6}$/.test(code)) {
-      res = await fetch(`${API_URL}/job/ARX-${code}?kiosk_id=${KIOSK_ID}`, { cache: 'no-store', headers: defaultHeaders });
+      res = await fetch(`${KIOSK_PROXY_API_URL}/job/ARX-${code}?kiosk_id=${KIOSK_ID}`, { cache: 'no-store', headers: defaultHeaders });
     }
 
     const data = await readJsonResponse<any>(res);
@@ -123,7 +105,7 @@ export async function validateJobCode(code: string): Promise<{ job?: PrintJob, e
 
 export async function requestOtp(code: string): Promise<boolean> {
   const pickupCode = normalizePickupCode(code);
-  const res = await fetch(`${API_URL}/job/${pickupCode}/request_release_otp`, {
+  const res = await fetch(`${KIOSK_PROXY_API_URL}/job/${pickupCode}/request_release_otp`, {
     method: 'POST',
     cache: 'no-store',
     headers: defaultHeaders,
@@ -137,7 +119,7 @@ export async function requestOtp(code: string): Promise<boolean> {
 
 export async function verifyOtp(code: string, otp: string): Promise<boolean> {
   const pickupCode = normalizePickupCode(code);
-  const res = await fetch(`${API_URL}/job/${pickupCode}/verify_release_otp`, {
+  const res = await fetch(`${KIOSK_PROXY_API_URL}/job/${pickupCode}/verify_release_otp`, {
     method: 'POST',
     cache: 'no-store',
     headers: defaultHeaders,
@@ -151,7 +133,7 @@ export async function verifyOtp(code: string, otp: string): Promise<boolean> {
 
 export async function releaseJob(code: string): Promise<boolean> {
   const pickupCode = normalizePickupCode(code);
-  const res = await fetch(`${API_URL}/release_job`, {
+  const res = await fetch(`${KIOSK_PROXY_API_URL}/release_job`, {
     method: 'POST',
     cache: 'no-store',
     headers: defaultHeaders,
@@ -164,10 +146,24 @@ export async function releaseJob(code: string): Promise<boolean> {
 }
 
 export async function checkJobStatus(uploadId: string): Promise<string> {
-  const res = await fetch(`${API_URL}/job_status/${uploadId}`, { cache: 'no-store', headers: defaultHeaders });
+  const localUrl = `/api/job_status/${uploadId}`;
+  try {
+    const localRes = await fetch(localUrl, { cache: 'no-store', headers: defaultHeaders });
+    if (localRes.ok) {
+      const data = await readJsonResponse<any>(localRes);
+      const localStatus = String(data?.job_status ?? data?.status ?? '').trim();
+      if (localStatus) {
+        return localStatus;
+      }
+    }
+  } catch {
+    // Fall back to the remote backend only if the kiosk proxy is unavailable.
+  }
+
+  const res = await fetch(localUrl, { cache: 'no-store', headers: defaultHeaders });
   const data = await readJsonResponse<any>(res);
   if (!data) return 'unknown';
-  return data.status;
+  return String(data.job_status ?? data.status ?? 'unknown');
 }
 
 export async function sendAlert(alertType: string, source: string, message: string, extra: any = {}): Promise<boolean> {
@@ -196,16 +192,19 @@ export async function createSupportCall(category: string, description: string = 
   if (!res.ok) throw new Error('Failed to create support call');
   const data = await readJsonResponse<any>(res);
   if (!data) throw new Error('Failed to create support call');
+  const call = (data.call || data) as Record<string, any>;
+  const accessToken = String(data.access_token || data.call_token || call.access_token || call.call_token || '');
   return {
-    id: data.id || data.call_id,
-    kiosk_id: String(data.kiosk_id || KIOSK_ID),
-    category: String(data.category || category),
-    description: String(data.description || description),
-    status: (data.status || 'open') as SupportCall['status'],
-    created_at: String(data.created_at || new Date().toISOString()),
-    updated_at: String(data.updated_at || data.created_at || new Date().toISOString()),
-    connected_at: data.connected_at || null,
-    closed_at: data.closed_at || null,
+    id: call.id || call.call_id,
+    kiosk_id: String(call.kiosk_id || KIOSK_ID),
+    category: String(call.category || category),
+    description: String(call.description || description),
+    status: (call.status || 'open') as SupportCall['status'],
+    created_at: String(call.created_at || new Date().toISOString()),
+    updated_at: String(call.updated_at || call.created_at || new Date().toISOString()),
+    connected_at: call.connected_at || null,
+    closed_at: call.closed_at || null,
+    access_token: accessToken || undefined,
   };
 }
 
@@ -221,9 +220,10 @@ export async function listSupportCalls(status?: string): Promise<SupportCall[]> 
   return Array.isArray(data.calls) ? (data.calls as SupportCall[]) : [];
 }
 
-export async function getSupportCall(callId: string): Promise<SupportCall | null> {
+export async function getSupportCall(callId: string, callToken?: string): Promise<SupportCall | null> {
+  const headers = callToken ? { ...defaultHeaders, 'X-AROX-CALL-TOKEN': callToken } : defaultHeaders;
   const res = await fetchSupportApi(`/support/calls/${callId}`, {
-    headers: defaultHeaders,
+    headers,
   });
   if (!res.ok) return null;
   const data = await readJsonResponse<any>(res);
@@ -231,10 +231,11 @@ export async function getSupportCall(callId: string): Promise<SupportCall | null
   return data.call as SupportCall;
 }
 
-export async function updateSupportCall(callId: string, status: SupportCall['status']): Promise<SupportCall | null> {
+export async function updateSupportCall(callId: string, status: SupportCall['status'], callToken?: string): Promise<SupportCall | null> {
+  const headers = callToken ? { ...defaultHeaders, 'X-AROX-CALL-TOKEN': callToken } : defaultHeaders;
   const res = await fetchSupportApi(`/support/calls/${callId}`, {
     method: 'PATCH',
-    headers: defaultHeaders,
+    headers,
     body: JSON.stringify({ status }),
   });
   if (!res.ok) return null;

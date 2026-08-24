@@ -1,4 +1,5 @@
 ﻿import express from 'express';
+import crypto from 'crypto';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
 
@@ -46,6 +47,7 @@ type SupportCallRecord = {
   updated_at: string;
   connected_at: string | null;
   closed_at: string | null;
+  access_token: string;
 };
 
 const paperCapacity = 500;
@@ -63,6 +65,34 @@ const jobsByPickupCode = new Map<string, JobRecord>();
 const jobsByUploadId = new Map<string, JobRecord>();
 const alerts: AlertRecord[] = [];
 const supportCalls: SupportCallRecord[] = [];
+
+const BACKEND_API_URL = (process.env.BACKEND_API_URL || process.env.VITE_API_URL || 'https://arox-api-993539509814.asia-south1.run.app/api').replace(/\/$/, '');
+const BACKEND_SERVICE_TOKEN = (process.env.BACKEND_SERVICE_TOKEN || process.env.AROX_SERVICE_TOKEN || '').trim();
+const USE_LOCAL_MOCKS = process.env.NODE_ENV !== 'production' && process.env.KIOSK_WEB_ALLOW_MOCKS === 'true';
+const BETTER_STACK_LOG_SOURCE_TOKEN = (process.env.BETTER_STACK_LOG_SOURCE_TOKEN || process.env.BETTER_STACK_SOURCE_TOKEN || '').trim();
+const BETTER_STACK_LOG_INGESTING_HOST = (process.env.BETTER_STACK_LOG_INGESTING_HOST || process.env.BETTER_STACK_INGESTING_HOST || '').trim();
+
+async function proxyBackend(pathname: string, init: RequestInit = {}) {
+  if (!BACKEND_SERVICE_TOKEN) return null;
+  const headers = new Headers(init.headers || {});
+  headers.set('X-AROX-SERVICE-TOKEN', BACKEND_SERVICE_TOKEN);
+  if (!headers.has('Cache-Control')) {
+    headers.set('Cache-Control', 'no-store');
+  }
+  const res = await fetch(`${BACKEND_API_URL}${pathname}`, {
+    ...init,
+    headers,
+  });
+  return res;
+}
+
+async function sendBackendResponse(res: express.Response, backendRes: Response) {
+  const body = await backendRes.text();
+  res.status(backendRes.status);
+  const contentType = backendRes.headers.get('content-type') || 'application/json';
+  res.type(contentType);
+  res.send(body);
+}
 
 function normalizeCode(rawCode: string) {
   return rawCode.replace(/^ARX-/i, '').trim();
@@ -178,17 +208,204 @@ function getSupportCall(callId: string) {
   return supportCalls.find((item) => item.id === callId) || null;
 }
 
+function getSupportToken(req: express.Request) {
+  return String(req.header('X-AROX-CALL-TOKEN') || req.query.call_token || req.query.token || '').trim();
+}
+
+function requireBackendOrMock(res: express.Response, feature: string) {
+  if (BACKEND_SERVICE_TOKEN) return true;
+  if (USE_LOCAL_MOCKS) return true;
+  res.status(503).json({ success: false, error: `${feature} is unavailable in production` });
+  return false;
+}
+
+function normalizeBetterStackHost(host: string) {
+  const trimmed = String(host || '').trim();
+  if (!trimmed) return '';
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed.replace(/\/$/, '');
+  }
+  return `https://${trimmed.replace(/\/$/, '')}`;
+}
+
+function sanitizeTelemetryValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((item) => sanitizeTelemetryValue(item));
+  }
+
+  if (value && typeof value === 'object') {
+    const output: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+      const lowered = key.toLowerCase();
+      if (['password', 'secret', 'token', 'authorization', 'cookie', 'otp', 'pin', 'key'].some((part) => lowered.includes(part))) {
+        output[key] = '[redacted]';
+      } else {
+        output[key] = sanitizeTelemetryValue(item);
+      }
+    }
+    return output;
+  }
+
+  if (typeof value === 'string') {
+    return value.slice(0, 2000);
+  }
+
+  return value;
+}
+
+async function forwardLogToBetterStack(payload: Record<string, unknown>) {
+  if (!BETTER_STACK_LOG_SOURCE_TOKEN || !BETTER_STACK_LOG_INGESTING_HOST) {
+    return false;
+  }
+
+  const endpoint = normalizeBetterStackHost(BETTER_STACK_LOG_INGESTING_HOST);
+  if (!endpoint) return false;
+
+  try {
+    const res = await fetch(endpoint, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${BETTER_STACK_LOG_SOURCE_TOKEN}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
+function logServerEvent(level: string, event: string, message: string, context: Record<string, unknown> = {}) {
+  const payload = {
+    dt: new Date().toISOString(),
+    source: 'arox_web_kiosk',
+    level,
+    event,
+    message,
+    context: sanitizeTelemetryValue(context),
+  };
+  void forwardLogToBetterStack(payload);
+}
+
 async function startServer() {
   const app = express();
+  app.disable('x-powered-by');
   const PORT = Number(process.env.PORT || 3000);
 
   app.use(express.json());
+
+  app.use((req, res, next) => {
+    const startedAt = Date.now();
+    res.on('finish', () => {
+      const durationMs = Date.now() - startedAt;
+      if (res.statusCode >= 500) {
+        logServerEvent('error', 'http_5xx', `${req.method} ${req.path} failed`, {
+          method: req.method,
+          path: req.path,
+          statusCode: res.statusCode,
+          durationMs,
+        });
+      }
+
+      if (req.path.startsWith('/api/support/')) {
+        logServerEvent('info', 'support_request', `${req.method} ${req.path}`, {
+          method: req.method,
+          path: req.path,
+          statusCode: res.statusCode,
+          durationMs,
+        });
+      }
+    });
+    next();
+  });
 
   app.get('/api/health', (_req, res) => {
     res.json({ ok: true });
   });
 
+  if (BACKEND_SERVICE_TOKEN) {
+    app.get('/api/job/:code', async (req, res) => {
+      const kioskId = String(req.query.kiosk_id || '').trim();
+      const query = kioskId ? `?kiosk_id=${encodeURIComponent(kioskId)}` : '';
+      const backendRes = await proxyBackend(`/api/job/${req.params.code}${query}`);
+      if (!backendRes) {
+        return res.status(503).json({ success: false, error: 'Backend proxy not configured' });
+      }
+      return sendBackendResponse(res, backendRes);
+    });
+
+    app.post('/api/job/:code/request_release_otp', async (req, res) => {
+      const backendRes = await proxyBackend(`/api/job/${req.params.code}/request_release_otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body || {}),
+      });
+      if (!backendRes) {
+        return res.status(503).json({ success: false, error: 'Backend proxy not configured' });
+      }
+      return sendBackendResponse(res, backendRes);
+    });
+
+    app.post('/api/job/:code/verify_release_otp', async (req, res) => {
+      const backendRes = await proxyBackend(`/api/job/${req.params.code}/verify_release_otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body || {}),
+      });
+      if (!backendRes) {
+        return res.status(503).json({ success: false, error: 'Backend proxy not configured' });
+      }
+      return sendBackendResponse(res, backendRes);
+    });
+
+    app.post('/api/job/:code/request_otp', async (req, res) => {
+      const backendRes = await proxyBackend(`/api/job/${req.params.code}/request_otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body || {}),
+      });
+      if (!backendRes) {
+        return res.status(503).json({ success: false, error: 'Backend proxy not configured' });
+      }
+      return sendBackendResponse(res, backendRes);
+    });
+
+    app.post('/api/job/:code/verify_otp', async (req, res) => {
+      const backendRes = await proxyBackend(`/api/job/${req.params.code}/verify_otp`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body || {}),
+      });
+      if (!backendRes) {
+        return res.status(503).json({ success: false, error: 'Backend proxy not configured' });
+      }
+      return sendBackendResponse(res, backendRes);
+    });
+
+    app.post('/api/release_job', async (req, res) => {
+      const backendRes = await proxyBackend('/api/release_job', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body || {}),
+      });
+      if (!backendRes) {
+        return res.status(503).json({ success: false, error: 'Backend proxy not configured' });
+      }
+      return sendBackendResponse(res, backendRes);
+    });
+
+    app.get('/api/job_status/:uploadId', async (req, res) => {
+      const backendRes = await proxyBackend(`/job_status/${req.params.uploadId}`);
+      if (!backendRes) {
+        return res.status(503).json({ success: false, error: 'Backend proxy not configured' });
+      }
+      return sendBackendResponse(res, backendRes);
+    });
+  }
+
   app.get('/api/kiosks/:kiosk_id/consumables', (req, res) => {
+    if (!requireBackendOrMock(res, 'Consumables route')) return;
     const kioskId = kioskKey(req.params.kiosk_id);
     const consumables = getConsumables(kioskId);
     res.json({
@@ -203,6 +420,7 @@ async function startServer() {
   });
 
   app.get('/api/job/:code', (req, res) => {
+    if (!requireBackendOrMock(res, 'Job lookup route')) return;
     const kioskId = kioskKey(req.query.kiosk_id as string | undefined);
     const normalized = normalizeCode(req.params.code);
 
@@ -235,6 +453,7 @@ async function startServer() {
   });
 
   app.post('/api/job/:code/request_release_otp', (req, res) => {
+    if (!requireBackendOrMock(res, 'Release OTP route')) return;
     const kioskId = kioskKey(req.body?.kiosk_id || req.query?.kiosk_id);
     const job = getOrCreateJob(req.params.code, kioskId);
 
@@ -247,6 +466,7 @@ async function startServer() {
   });
 
   app.post('/api/job/:code/verify_release_otp', (req, res) => {
+    if (!requireBackendOrMock(res, 'Release OTP verification route')) return;
     const kioskId = kioskKey(req.body?.kiosk_id || req.query?.kiosk_id);
     const job = getOrCreateJob(req.params.code, kioskId);
 
@@ -263,6 +483,7 @@ async function startServer() {
   });
 
   app.post('/api/release_job', (req, res) => {
+    if (!requireBackendOrMock(res, 'Release job route')) return;
     const kioskId = kioskKey(req.body?.kiosk_id);
     const pickupCode = normalizeCode(String(req.body?.pickup_code || ''));
     const job = getOrCreateJob(pickupCode, kioskId);
@@ -292,11 +513,22 @@ async function startServer() {
   });
 
   app.get('/api/job_status/:uploadId', (req, res) => {
+    if (!requireBackendOrMock(res, 'Job status route')) return;
     const job = jobsByUploadId.get(req.params.uploadId);
-    res.json({ status: job?.status || 'unknown' });
+    res.json({
+      success: true,
+      upload_id: job?.upload_id || req.params.uploadId,
+      job_status: job?.status || 'unknown',
+      status: job?.status || 'unknown',
+      payment_status: job ? 'Paid' : 'unknown',
+      print_failed: false,
+      pickup_code: job?.pickup_code || null,
+      estimated_total_seconds: job?.estimated_time_seconds || 0,
+    });
   });
 
   app.post('/api/kiosks/:kiosk_id/alerts', (req, res) => {
+    if (!requireBackendOrMock(res, 'Kiosk alerts route')) return;
     const kioskId = kioskKey(req.params.kiosk_id);
     const alert: AlertRecord = {
       id: `alert-${Date.now()}`,
@@ -313,9 +545,23 @@ async function startServer() {
     res.json({ success: true, id: alert.id, alert_id: alert.id });
   });
 
-  app.post('/api/support/calls', (req, res) => {
+  app.post('/api/support/calls', async (req, res) => {
+    if (BACKEND_SERVICE_TOKEN) {
+      const backendRes = await proxyBackend('/api/support/calls', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body || {}),
+      });
+      if (!backendRes) {
+        return res.status(503).json({ success: false, error: 'Backend proxy not configured' });
+      }
+      return sendBackendResponse(res, backendRes);
+    }
+
+    if (!requireBackendOrMock(res, 'Support call creation')) return;
+
     const kioskId = kioskKey(req.body?.kiosk_id);
-    console.info(`[support] create kiosk=${kioskId} category=${String(req.body?.category || 'other')}`);
+    logServerEvent('info', 'support_create', 'Support call created', { kioskId, category: String(req.body?.category || 'other') });
     const now = new Date().toISOString();
     const call: SupportCallRecord = {
       id: `call-${Date.now()}`,
@@ -327,15 +573,31 @@ async function startServer() {
       updated_at: now,
       connected_at: null,
       closed_at: null,
+      access_token: crypto.randomUUID().replace(/-/g, ''),
     };
     supportCalls.push(call);
-    res.json({ success: true, id: call.id, call_id: call.id, status: call.status, call });
+    res.json({ success: true, id: call.id, call_id: call.id, status: call.status, access_token: call.access_token, call });
   });
 
-  app.get('/api/support/calls', (req, res) => {
+  app.get('/api/support/calls', async (req, res) => {
+    if (BACKEND_SERVICE_TOKEN) {
+      const query = new URLSearchParams();
+      const status = String(req.query.status || '').trim();
+      const kioskId = String(req.query.kiosk_id || '').trim();
+      if (status) query.set('status', status);
+      if (kioskId) query.set('kiosk_id', kioskId);
+      const backendRes = await proxyBackend(`/api/support/calls${query.toString() ? `?${query.toString()}` : ''}`);
+      if (!backendRes) {
+        return res.status(503).json({ success: false, error: 'Backend proxy not configured' });
+      }
+      return sendBackendResponse(res, backendRes);
+    }
+
+    if (!requireBackendOrMock(res, 'Support call list')) return;
+
     const status = String(req.query.status || '').trim().toLowerCase();
-    console.info(`[support] list status=${status || 'all'}`);
     const kioskId = String(req.query.kiosk_id || '').trim();
+    logServerEvent('info', 'support_list', 'Support call list requested', { status: status || 'all', kioskId });
 
     const filtered = supportCalls.filter((call) => {
       const statusMatches = !status || call.status.toLowerCase() === status;
@@ -346,34 +608,57 @@ async function startServer() {
     res.json({ success: true, calls: filtered });
   });
 
-  app.get('/api/support/calls/:call_id', (req, res) => {
-    console.info(`[support] get call=${req.params.call_id}`);
+  app.get('/api/support/calls/:call_id', async (req, res) => {
+    if (BACKEND_SERVICE_TOKEN) {
+      const backendRes = await proxyBackend(`/api/support/calls/${req.params.call_id}`);
+      if (!backendRes) {
+        return res.status(503).json({ success: false, error: 'Backend proxy not configured' });
+      }
+      return sendBackendResponse(res, backendRes);
+    }
+
+    if (!requireBackendOrMock(res, 'Support call fetch')) return;
+
+    logServerEvent('info', 'support_get', 'Support call fetched', { callId: req.params.call_id });
     const call = getSupportCall(req.params.call_id);
-    if (!call) {
+    const token = getSupportToken(req);
+    if (!call || call.access_token !== token) {
       return res.status(404).json({ success: false, error: 'Support call not found' });
     }
 
     return res.json({ success: true, call });
   });
 
-  app.patch('/api/support/calls/:call_id', (req, res) => {
-    console.info(`[support] update call=${req.params.call_id} status=${String(req.body?.status || '')}`);
+  app.patch('/api/support/calls/:call_id', async (req, res) => {
+    if (BACKEND_SERVICE_TOKEN) {
+      const backendRes = await proxyBackend(`/api/support/calls/${req.params.call_id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body || {}),
+      });
+      if (!backendRes) {
+        return res.status(503).json({ success: false, error: 'Backend proxy not configured' });
+      }
+      return sendBackendResponse(res, backendRes);
+    }
+
+    if (!requireBackendOrMock(res, 'Support call update')) return;
+
+    logServerEvent('info', 'support_update', 'Support call updated', { callId: req.params.call_id, nextStatus: String(req.body?.status || '') });
     const call = getSupportCall(req.params.call_id);
-    if (!call) {
+    const token = getSupportToken(req);
+    if (!call || call.access_token !== token) {
       return res.status(404).json({ success: false, error: 'Support call not found' });
     }
 
     const nextStatus = String(req.body?.status || '').trim().toLowerCase();
-    if (!['open', 'connected', 'closed'].includes(nextStatus)) {
+    if (nextStatus !== 'closed') {
       return res.status(400).json({ success: false, error: 'Invalid support call status' });
     }
 
     call.status = nextStatus;
     call.updated_at = new Date().toISOString();
-    if (nextStatus === 'connected' && !call.connected_at) {
-      call.connected_at = call.updated_at;
-    }
-    if (nextStatus === 'closed') {
+    if (!call.closed_at) {
       call.closed_at = call.updated_at;
     }
 
@@ -395,6 +680,7 @@ async function startServer() {
   }
 
   app.listen(PORT, '0.0.0.0', () => {
+    logServerEvent('info', 'server_start', 'Kiosk web server started', { port: PORT });
     console.log(`Server running on http://localhost:${PORT}`);
   });
 }

@@ -33,4 +33,5 @@ export interface SupportCall {
   updated_at: string;
   connected_at: string | null;
   closed_at: string | null;
+  access_token?: string;
 }

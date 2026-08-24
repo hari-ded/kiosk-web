@@ -24,6 +24,7 @@ export function SupportOverlay({ onClose }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [isMuted, setIsMuted] = useState(false);
   const [callId, setCallId] = useState<string | null>(null);
+  const [callToken, setCallToken] = useState<string | null>(null);
   const [connectionStatus, setConnectionStatus] = useState<string>('Waiting for the next available agent');
 
   const mediaStreamRef = useRef<MediaStream | null>(null);
@@ -53,7 +54,7 @@ export function SupportOverlay({ onClose }: Props) {
     }
 
     const refreshCall = async () => {
-      const liveCall = await getSupportCall(callId);
+      const liveCall = await getSupportCall(callId, callToken ?? undefined);
       if (!liveCall) {
         setError('Support request could not be found.');
         setCallState('ended');
@@ -90,7 +91,7 @@ export function SupportOverlay({ onClose }: Props) {
         pollTimerRef.current = null;
       }
     };
-  }, [callId, callState, onClose]);
+  }, [callId, callToken, callState, onClose]);
 
   const handleStartCall = async () => {
     setCallState('requesting_mic');
@@ -107,6 +108,7 @@ export function SupportOverlay({ onClose }: Props) {
       }
 
       setCallId(callData.id);
+      setCallToken(callData.access_token || null);
       setConnectionStatus('Waiting for the next available agent');
     } catch (err: any) {
       cleanupCall();
@@ -133,7 +135,7 @@ export function SupportOverlay({ onClose }: Props) {
     const activeCallId = callId;
     cleanupCall();
     if (activeCallId) {
-      void updateSupportCall(activeCallId, 'closed');
+      void updateSupportCall(activeCallId, 'closed', callToken ?? undefined);
     }
     onClose();
   };
