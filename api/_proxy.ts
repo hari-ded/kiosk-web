@@ -66,41 +66,49 @@ function copyRequestHeaders(req: any) {
 }
 
 async function proxyToBackend(req: any, res: any, segments: string[]) {
-  const backendBase = getBackendApiUrl();
-  const incomingUrl = new URL(req.url || '/', 'http://localhost');
-  const backendUrl = new URL(`${backendBase}${normalizeBackendPath(segments)}`);
-  backendUrl.search = incomingUrl.search;
+  try {
+    const backendBase = getBackendApiUrl();
+    const incomingUrl = new URL(req.url || '/', 'http://localhost');
+    const backendUrl = new URL(`${backendBase}${normalizeBackendPath(segments)}`);
+    backendUrl.search = incomingUrl.search;
 
-  const method = String(req.method || 'GET').toUpperCase();
-  const headers = copyRequestHeaders(req);
-  const init: RequestInit = { method, headers };
+    const method = String(req.method || 'GET').toUpperCase();
+    const headers = copyRequestHeaders(req);
+    const init: RequestInit = { method, headers };
 
-  if (!['GET', 'HEAD'].includes(method)) {
-    if (typeof req.body === 'string' || Buffer.isBuffer(req.body)) {
-      init.body = req.body;
-    } else if (req.body !== undefined) {
-      init.body = JSON.stringify(req.body);
-      if (!headers.has('content-type')) {
-        headers.set('Content-Type', 'application/json');
+    if (!['GET', 'HEAD'].includes(method)) {
+      if (typeof req.body === 'string' || Buffer.isBuffer(req.body)) {
+        init.body = req.body;
+      } else if (req.body !== undefined) {
+        init.body = JSON.stringify(req.body);
+        if (!headers.has('content-type')) {
+          headers.set('Content-Type', 'application/json');
+        }
       }
     }
+
+    const backendRes = await fetch(backendUrl.toString(), init);
+    const body = await backendRes.text();
+
+    res.status(backendRes.status);
+    backendRes.headers.forEach((value, key) => {
+      const lower = key.toLowerCase();
+      if (['content-length', 'connection', 'transfer-encoding'].includes(lower)) return;
+      res.setHeader(key, value);
+    });
+
+    if (!res.getHeader('content-type')) {
+      res.setHeader('content-type', backendRes.headers.get('content-type') || 'application/json');
+    }
+
+    res.send(body);
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error || 'Proxy failed');
+    res.status(500).json({
+      error: 'Proxy failed',
+      message,
+    });
   }
-
-  const backendRes = await fetch(backendUrl.toString(), init);
-  const body = await backendRes.text();
-
-  res.status(backendRes.status);
-  backendRes.headers.forEach((value, key) => {
-    const lower = key.toLowerCase();
-    if (['content-length', 'connection', 'transfer-encoding'].includes(lower)) return;
-    res.setHeader(key, value);
-  });
-
-  if (!res.getHeader('content-type')) {
-    res.setHeader('content-type', backendRes.headers.get('content-type') || 'application/json');
-  }
-
-  res.send(body);
 }
 
 export { proxyToBackend };
