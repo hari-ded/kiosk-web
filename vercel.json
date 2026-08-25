@@ -6,7 +6,7 @@
     },
     {
       "source": "/api/:path*",
-      "destination": "/api/proxy-all"
+      "destination": "/api/proxy-all?path=:path*"
     }
   ]
 }

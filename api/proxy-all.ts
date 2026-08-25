@@ -13,16 +13,31 @@ function getBackendApiBase(): string {
     process.env.AROX_BACKEND_API_URL ||
     process.env.VITE_PRINTER_BACKEND_URL ||
     DEFAULT_BACKEND_API_URL
-  ).replace(/\/+$/, '');
+  ).replace(/\/+$|\s+$/g, '');
+}
+
+function getForwardPath(req: any): string {
+  const queryPath = req.query?.path;
+  if (Array.isArray(queryPath)) {
+    return `/${queryPath.join('/')}`;
+  }
+  if (typeof queryPath === 'string' && queryPath.trim()) {
+    return queryPath.startsWith('/') ? queryPath : `/${queryPath}`;
+  }
+
+  const incomingUrl = new URL(req.url ?? '/api/proxy-all', 'http://localhost');
+  const fallback = incomingUrl.pathname.replace(/^\/api\/proxy-all/, '').replace(/^\/api/, '') || '/';
+  return fallback.startsWith('/') ? fallback : `/${fallback}`;
 }
 
 function getForwardUrl(req: any): string {
   const backendBase = new URL(getBackendApiBase());
-  const incomingUrl = new URL(req.url ?? '/api', 'http://localhost');
-  const apiPath = incomingUrl.pathname.replace(/^\/api/, '') || '/';
+  const forwardPath = getForwardPath(req);
+  const query = new URL(req.url ?? '/api/proxy-all', 'http://localhost').searchParams;
+  query.delete('path');
 
-  backendBase.pathname = `${backendBase.pathname.replace(/\/+$/, '')}${apiPath}`;
-  backendBase.search = incomingUrl.search;
+  backendBase.pathname = `${backendBase.pathname.replace(/\/+$/, '')}${forwardPath}`;
+  backendBase.search = query.toString() ? `?${query.toString()}` : '';
   return backendBase.toString();
 }
 
