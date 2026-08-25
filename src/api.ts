@@ -1,6 +1,7 @@
 import { PrintJob, Consumables, SupportCall } from './types';
 
-const RAW_API_URL = import.meta.env.VITE_BACKEND_API_URL ?? import.meta.env.VITE_API_URL ?? '/api';
+const RAW_DIRECT_API_URL = import.meta.env.VITE_BACKEND_API_URL ?? import.meta.env.VITE_API_URL ?? '/api';
+const RAW_PROXY_API_URL = import.meta.env.VITE_API_URL ?? '/api';
 
 function normalizeApiBase(url: string) {
   const trimmed = String(url || '').trim().replace(/\/$/, '');
@@ -16,11 +17,12 @@ function normalizeApiBase(url: string) {
   return `${trimmed}/api`;
 }
 
-const API_URL = normalizeApiBase(RAW_API_URL);
+const DIRECT_API_URL = normalizeApiBase(RAW_DIRECT_API_URL);
+const PROXY_API_URL = normalizeApiBase(RAW_PROXY_API_URL);
 const KIOSK_ID = import.meta.env.VITE_KIOSK_ID || '1';
-// The kiosk can talk either to the same-origin /api proxy or directly to the
-// backend when VITE_BACKEND_API_URL is provided for debugging or fallback.
-const KIOSK_API_URL = API_URL;
+// Direct backend reads can bypass Vercel, but writes should stay on the
+// same-origin proxy so the server can inject the service token.
+const KIOSK_API_URL = DIRECT_API_URL;
 const defaultHeaders = {
   'Content-Type': 'application/json',
   'Cache-Control': 'no-store'
@@ -55,14 +57,14 @@ async function readJsonResponse<T>(res: Response): Promise<T | null> {
 }
 
 async function fetchSupportApi(path: string, init?: RequestInit) {
-  return fetch(`${API_URL}${path}`, {
+  return fetch(`${PROXY_API_URL}${path}`, {
     cache: 'no-store',
     ...init,
   });
 }
 
 export async function fetchConsumables(): Promise<Consumables> {
-  const res = await fetch(`${API_URL}/kiosks/${KIOSK_ID}/consumables`, {
+  const res = await fetch(`${DIRECT_API_URL}/kiosks/${KIOSK_ID}/consumables`, {
     cache: 'no-store',
     headers: buildHeaders()
   });
@@ -118,7 +120,7 @@ export async function validateJobCode(code: string): Promise<{ job?: PrintJob, e
 
 export async function requestOtp(code: string): Promise<boolean> {
   const pickupCode = normalizePickupCode(code);
-  const res = await fetch(`${KIOSK_API_URL}/job/${pickupCode}/request_release_otp`, {
+  const res = await fetch(`${PROXY_API_URL}/job/${pickupCode}/request_release_otp`, {
     method: 'POST',
     cache: 'no-store',
     headers: buildHeaders(),
@@ -132,7 +134,7 @@ export async function requestOtp(code: string): Promise<boolean> {
 
 export async function verifyOtp(code: string, otp: string): Promise<boolean> {
   const pickupCode = normalizePickupCode(code);
-  const res = await fetch(`${KIOSK_API_URL}/job/${pickupCode}/verify_release_otp`, {
+  const res = await fetch(`${PROXY_API_URL}/job/${pickupCode}/verify_release_otp`, {
     method: 'POST',
     cache: 'no-store',
     headers: buildHeaders(),
@@ -146,7 +148,7 @@ export async function verifyOtp(code: string, otp: string): Promise<boolean> {
 
 export async function releaseJob(code: string): Promise<boolean> {
   const pickupCode = normalizePickupCode(code);
-  const res = await fetch(`${KIOSK_API_URL}/release_job`, {
+  const res = await fetch(`${PROXY_API_URL}/release_job`, {
     method: 'POST',
     cache: 'no-store',
     headers: buildHeaders(),
@@ -160,7 +162,7 @@ export async function releaseJob(code: string): Promise<boolean> {
 
 export async function checkJobStatus(uploadId: string): Promise<string> {
   try {
-    const res = await fetch(`${API_URL}/job_status/${uploadId}`, {
+    const res = await fetch(`${DIRECT_API_URL}/job_status/${uploadId}`, {
       cache: 'no-store',
       headers: buildHeaders()
     });
@@ -172,7 +174,7 @@ export async function checkJobStatus(uploadId: string): Promise<string> {
   }
 }
 export async function sendAlert(alertType: string, source: string, message: string, extra: any = {}): Promise<boolean> {
-  const res = await fetch(`${API_URL}/kiosks/${KIOSK_ID}/alerts`, {
+  const res = await fetch(`${PROXY_API_URL}/kiosks/${KIOSK_ID}/alerts`, {
     method: 'POST',
     cache: 'no-store',
     headers: buildHeaders(),
@@ -248,6 +250,5 @@ export async function updateSupportCall(callId: string, status: SupportCall['sta
   if (!data?.call) return null;
   return data.call as SupportCall;
 }
-
 
 
