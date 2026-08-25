@@ -89,9 +89,17 @@ export async function validateJobCode(code: string): Promise<{ job?: PrintJob, e
       return { error: data.error || data.message || 'Invalid pickup code' };
     }
 
+    // Older deployed backend revisions return `id`, while the current API
+    // contract returns `upload_id`. Do not create a job with an undefined id:
+    // it would otherwise cause the status screen to poll `/job_status/undefined`.
+    const uploadId = data.upload_id ?? data.id;
+    if (uploadId === undefined || uploadId === null || String(uploadId).trim() === '') {
+      return { error: data.error || data.message || 'Server returned a job without an ID' };
+    }
+
     return {
       job: {
-        id: data.upload_id,
+        id: String(uploadId),
         filename: data.filename || `Job ${code}`,
         pages: Number(data.pages) || 1,
         copies: Number(data.copies) || 1,

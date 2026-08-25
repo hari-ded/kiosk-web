@@ -69,6 +69,12 @@ export function Status() {
       return;
     }
 
+    if (!job.id || String(job.id).trim() === 'undefined') {
+      sessionStorage.removeItem('arox_current_job');
+      navigate('/', { replace: true });
+      return;
+    }
+
     mountedRef.current = true;
 
     const clearTimers = () => {
