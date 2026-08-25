@@ -3,20 +3,29 @@ const DEFAULT_BACKEND_API_URL = 'https://arox-api-993539509814.asia-south1.run.a
 function normalizeBackendApiUrl(url: string) {
   const trimmed = String(url || '').trim().replace(/\/$/, '');
   if (!trimmed) {
-    return DEFAULT_BACKEND_API_URL;
+    return '';
   }
-  if (trimmed === '/api' || trimmed.endsWith('/api')) {
-    return trimmed;
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
   }
-  return `${trimmed}/api`;
+  return '';
 }
 
 function getBackendApiUrl() {
-  return normalizeBackendApiUrl(
-    process.env.BACKEND_API_URL ||
-    process.env.VITE_API_URL ||
-    DEFAULT_BACKEND_API_URL
-  );
+  const candidates = [
+    process.env.BACKEND_API_URL,
+    process.env.AROX_BACKEND_API_URL,
+    process.env.VITE_PRINTER_BACKEND_URL,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = normalizeBackendApiUrl(candidate || '');
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return DEFAULT_BACKEND_API_URL;
 }
 
 function getServiceToken() {

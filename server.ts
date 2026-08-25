@@ -66,7 +66,37 @@ const jobsByUploadId = new Map<string, JobRecord>();
 const alerts: AlertRecord[] = [];
 const supportCalls: SupportCallRecord[] = [];
 
-const BACKEND_API_URL = (process.env.BACKEND_API_URL || process.env.VITE_API_URL || 'https://arox-api-993539509814.asia-south1.run.app/api').replace(/\/$/, '');
+const DEFAULT_BACKEND_API_URL = 'https://arox-api-993539509814.asia-south1.run.app/api';
+
+function normalizeBackendApiUrl(url: string) {
+  const trimmed = String(url || '').trim().replace(/\/$/, '');
+  if (!trimmed) {
+    return '';
+  }
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
+  }
+  return '';
+}
+
+function resolveBackendApiUrl() {
+  const candidates = [
+    process.env.BACKEND_API_URL,
+    process.env.AROX_BACKEND_API_URL,
+    process.env.VITE_PRINTER_BACKEND_URL,
+  ];
+
+  for (const candidate of candidates) {
+    const normalized = normalizeBackendApiUrl(candidate || '');
+    if (normalized) {
+      return normalized;
+    }
+  }
+
+  return DEFAULT_BACKEND_API_URL;
+}
+
+const BACKEND_API_URL = resolveBackendApiUrl();
 const BACKEND_SERVICE_TOKEN = (process.env.BACKEND_SERVICE_TOKEN || process.env.AROX_SERVICE_TOKEN || '').trim();
 const USE_LOCAL_MOCKS = process.env.NODE_ENV !== 'production' && process.env.KIOSK_WEB_ALLOW_MOCKS === 'true';
 const BETTER_STACK_LOG_SOURCE_TOKEN = (process.env.BETTER_STACK_LOG_SOURCE_TOKEN || process.env.BETTER_STACK_SOURCE_TOKEN || '').trim();
