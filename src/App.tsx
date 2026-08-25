@@ -13,6 +13,7 @@ import { OtpVerify } from './screens/OtpVerify';
 import { Status } from './screens/Status';
 import { LowSupply } from './screens/LowSupply';
 import { AgentConsole } from './screens/AgentConsole';
+import { Health } from './screens/Health';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SupportOverlay } from './components/SupportOverlay';
 import { SupportContext } from './contexts/SupportContext';
@@ -33,6 +34,7 @@ export default function App() {
             <Route path="/status/:jobId" element={<Status />} />
             <Route path="/low-supply" element={<LowSupply />} />
             <Route path="/agent" element={<AgentConsole />} />
+            <Route path="/health" element={<Health />} />
           </Routes>
         </BrowserRouter>
         {showSupport && <SupportOverlay onClose={() => setShowSupport(false)} />}
