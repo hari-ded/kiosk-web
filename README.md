@@ -28,7 +28,7 @@ This kiosk app is built to support a fast, reliable front desk or public termina
 - `src/components/SupportOverlay.tsx` manages the kiosk-side support call flow
 - `src/screens/AgentConsole.tsx` provides the admin or care-team support console
 
-The app is designed to talk to the same-origin `/api` proxy for browser API calls. The printer socket still connects to the backend root directly unless you override it with `VITE_PRINTER_BACKEND_URL`.
+The app can talk to the same-origin `/api` proxy for browser API calls, or directly to the backend when `VITE_BACKEND_API_URL` is set. The printer socket still connects to the backend root directly unless you override it with `VITE_PRINTER_BACKEND_URL`.
 
 The API layer normalizes its base URL and appends `/api` automatically when needed. The printer socket uses a separate backend-root setting.
 
@@ -52,6 +52,7 @@ Copy `.env.example` to your local environment file and adjust the values if need
 
 Key variables:
 
+- `VITE_BACKEND_API_URL` - Optional direct browser API base URL, for example `https://arox-api-993539509814.asia-south1.run.app/api`. Use this if the Vercel `/api` proxy is returning 404.
 - `VITE_API_URL` - API base URL for the browser. The default is `/api`, which should be proxied server-side in production.
 - `VITE_KIOSK_ID` - Kiosk identifier used for consumables, jobs, alerts, and support calls.
 - `VITE_PRINTER_BACKEND_URL` - Backend root used by the printer realtime socket. Defaults to the production backend root.

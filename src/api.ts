@@ -1,19 +1,25 @@
 import { PrintJob, Consumables, SupportCall } from './types';
 
-const RAW_API_URL = import.meta.env.VITE_API_URL ?? '/api';
+const RAW_API_URL = import.meta.env.VITE_BACKEND_API_URL ?? import.meta.env.VITE_API_URL ?? '/api';
 
 function normalizeApiBase(url: string) {
-  const trimmed = url.replace(/\/$/, '');
+  const trimmed = String(url || '').trim().replace(/\/$/, '');
+  if (!trimmed) {
+    return '/api';
+  }
   if (trimmed === '/api' || trimmed.endsWith('/api')) {
     return trimmed;
+  }
+  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
+    return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
   }
   return `${trimmed}/api`;
 }
 
 const API_URL = normalizeApiBase(RAW_API_URL);
 const KIOSK_ID = import.meta.env.VITE_KIOSK_ID || '1';
-// The kiosk talks to the same-origin /api proxy in production and the local
-// Node server in development. Both routes forward to the backend securely.
+// The kiosk can talk either to the same-origin /api proxy or directly to the
+// backend when VITE_BACKEND_API_URL is provided for debugging or fallback.
 const KIOSK_API_URL = API_URL;
 const defaultHeaders = {
   'Content-Type': 'application/json',
