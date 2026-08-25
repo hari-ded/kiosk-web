@@ -111,18 +111,13 @@ export function Confirm() {
 
       if (job.email) {
         const success = await requestOtp(job.pickup_code);
-        if (success) {
-          navigate(`/otp/${job.id}`, { state: { job } });
+        if (!success) {
+          setError('Failed to send OTP. Please try again.');
+          setLoading(false);
           return;
         }
 
-        const releaseSuccess = await releaseJob(job.pickup_code);
-        if (releaseSuccess) {
-          navigate(`/status/${job.id}`, { state: { job } });
-          return;
-        }
-
-        setError('Failed to start code verification.');
+        navigate(`/otp/${job.id}`, { state: { job } });
         setLoading(false);
         return;
       }
