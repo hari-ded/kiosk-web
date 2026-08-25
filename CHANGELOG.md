@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to AROX Web Kiosk are documented in this file.
+All notable changes to AROX Web Kiosk are documented in this file
 
 The repository does not currently contain a formal tagged release history, so the entries below summarize the release line as it exists in the codebase and current deployment flow.
 
