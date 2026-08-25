@@ -7,25 +7,13 @@ const HOP_BY_HOP_HEADERS = new Set([
   'upgrade',
 ]);
 
-function normalizeBackendApiUrl(url: string) {
-  const trimmed = String(url || '').trim().replace(/\/$/, '');
-  if (!trimmed) {
-    return '';
-  }
-  if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) {
-    return trimmed.endsWith('/api') ? trimmed : `${trimmed}/api`;
-  }
-  return '';
-}
-
 function getBackendApiBase(): string {
-  const normalized = normalizeBackendApiUrl(
+  return (
     process.env.BACKEND_API_URL ||
     process.env.AROX_BACKEND_API_URL ||
     process.env.VITE_PRINTER_BACKEND_URL ||
     DEFAULT_BACKEND_API_URL
-  );
-  return normalized || DEFAULT_BACKEND_API_URL;
+  ).replace(/\/+$|\s+$/g, '');
 }
 
 function getForwardPath(req: any): string {
