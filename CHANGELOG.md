@@ -1,8 +1,27 @@
-# Changelog
+﻿# Changelog
 
-All notable changes to AROX Web Kiosk are documented in this file
+All notable changes to AROX Web Kiosk are documented in this file.
 
 The repository does not currently contain a formal tagged release history, so the entries below summarize the release line as it exists in the codebase and current deployment flow.
+
+## [2.1.8] - 2026-08-26
+
+### Added
+
+- Release-OTP request and verification screens remain aligned with the backend job route contract.
+- Explicit kiosk-bound OTP payloads (`kiosk_id`) for release authorization.
+- Internal release-flow documentation for the user-facing kiosk path and the backend approval sequence.
+
+### Changed
+
+- The kiosk release flow now follows the backend-managed notification path for OTP delivery.
+- OTP verification is treated as a strict backend-authenticated step before job release.
+- The kiosk continues to use the same pickup-code flow across manual entry and QR-based entry.
+
+### Fixed
+
+- Reduced the risk of release requests failing due to route-contract drift between kiosk and backend services.
+- Clarified the release flow expectations for OTP request, OTP verification, and final print release.
 
 ## [2.1.7] - 2026-07-24
 
