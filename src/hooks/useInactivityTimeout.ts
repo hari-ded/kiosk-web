@@ -4,7 +4,12 @@ import { useLocation, useNavigate } from 'react-router-dom';
 const INACTIVITY_TIMEOUT_MS = 30000;
 const WARNING_TIMEOUT_SECONDS = 10;
 
-export function useInactivityTimeout() {
+/**
+ * Applies the kiosk idle timeout only while a visitor can safely abandon the
+ * current screen. Active print jobs must remain visible until the backend
+ * reports their next state.
+ */
+export function useInactivityTimeout(enabled = true) {
   const navigate = useNavigate();
   const location = useLocation();
   const [warningVisible, setWarningVisible] = useState(false);
@@ -72,7 +77,7 @@ export function useInactivityTimeout() {
   }, [clearWarningTimers, startIdleTimer]);
 
   useEffect(() => {
-    if (location.pathname === '/' || location.pathname === '/agent') {
+    if (!enabled || location.pathname === '/' || location.pathname === '/agent') {
       warningVisibleRef.current = false;
       setWarningVisible(false);
       clearAllTimers();
@@ -97,7 +102,7 @@ export function useInactivityTimeout() {
       clearAllTimers();
       events.forEach((event) => document.removeEventListener(event, resetTimer));
     };
-  }, [clearAllTimers, extendSession, location.pathname, startIdleTimer]);
+  }, [clearAllTimers, enabled, extendSession, location.pathname, startIdleTimer]);
 
   return {
     warningVisible,

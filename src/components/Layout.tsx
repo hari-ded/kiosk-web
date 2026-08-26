@@ -10,7 +10,8 @@ interface LayoutProps {
 }
 
 export function Layout({ children, disableInactivityWarning = false }: LayoutProps) {
-  const inactivity = useInactivityTimeout();
+  // Pause the timer itself, not just the warning overlay, while a job is live.
+  const inactivity = useInactivityTimeout(!disableInactivityWarning);
   const location = useLocation();
   const onHelp = useSupport();
 

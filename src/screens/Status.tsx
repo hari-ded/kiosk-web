@@ -5,7 +5,6 @@ import { PrintJob } from '../types';
 import { Layout } from '../components/Layout';
 import { Printer, CheckCircle2, XCircle, Home } from 'lucide-react';
 import { playSound } from '../utils/audio';
-import { summarizePrintJob } from '../utils/printJob';
 import { createPrinterSocket, type PrinterSocket } from '../utils/printerTransport';
 
 const SUCCESS_STATES = ['printed', 'completed', 'complete', 'success', 'done', 'finished'];
@@ -28,8 +27,6 @@ export function Status() {
   const navigate = useNavigate();
   const location = useLocation();
   const job = (location.state?.job as PrintJob | undefined) || readStoredJob();
-  const summary = job ? summarizePrintJob(job) : null;
-  const totalWaitSeconds = summary?.totalWaitSeconds ?? 0;
 
   const [status, setStatus] = useState<'processing' | 'printing' | 'completed' | 'failed'>('processing');
   const [progress, setProgress] = useState(0);
@@ -122,18 +119,15 @@ export function Status() {
         progressIntervalRef.current = null;
       }
 
-      setStatus('printing');
+      // The backend/engine is authoritative: do not use a local ETA to decide
+      // when a print is complete.
       setProgress(100);
-
-      completionDelayRef.current = window.setTimeout(() => {
-        if (!mountedRef.current) return;
-        setStatus('completed');
-        completionReturnRef.current = window.setTimeout(() => {
-          if (mountedRef.current) {
-            returnHome();
-          }
-        }, 5000);
-      }, Math.round(totalWaitSeconds * 1000));
+      setStatus('completed');
+      completionReturnRef.current = window.setTimeout(() => {
+        if (mountedRef.current) {
+          returnHome();
+        }
+      }, 5000);
     };
 
     const applyBackendStatus = (rawStatus: unknown) => {
@@ -266,7 +260,7 @@ export function Status() {
         socketRef.current = null;
       }
     };
-  }, [job, navigate, totalWaitSeconds]);
+  }, [job, navigate]);
 
   if (!job) {
     return (
