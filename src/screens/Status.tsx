@@ -9,6 +9,7 @@ import { createPrinterSocket, type PrinterSocket } from '../utils/printerTranspo
 
 const SUCCESS_STATES = ['printed', 'completed', 'complete', 'success', 'done', 'finished'];
 const FAILURE_STATES = ['failed', 'failure', 'error', 'errored', 'aborted', 'cancelled', 'canceled'];
+const PRINTING_STATES = ['printing', 'onkiosk'];
 
 function readStoredJob() {
   try {
@@ -150,7 +151,7 @@ export function Status() {
         return;
       }
 
-      if (lowerStatus === 'printing') {
+      if (PRINTING_STATES.includes(lowerStatus)) {
         setStatus('printing');
         return;
       }

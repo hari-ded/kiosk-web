@@ -1,9 +1,8 @@
-import { useEffect, useState } from 'react';
+﻿import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { fetchConsumables } from '../api';
 import { Layout } from '../components/Layout';
 import { QrCode, Keyboard } from 'lucide-react';
-import aroxLogo from '../../assets/arox_logo.png';
 import { playSound } from '../utils/audio';
 
 export function Home() {
@@ -60,17 +59,9 @@ export function Home() {
 
   return (
     <Layout>
-      <div className="flex-1 flex flex-col items-center justify-center relative">
-        <div className="absolute top-[-3rem] left-1/2 -translate-x-1/2 z-10">
-          <img
-            src={aroxLogo}
-            alt="Arox"
-            className="w-28 h-28 md:w-32 md:h-32 rounded-[1.75rem] object-contain shrink-0 shadow-xl"
-          />
-        </div>
-
-        <div className="mb-5 text-center pt-24">
-          <h2 className="text-3xl font-bold kiosk-heading inline-flex items-center justify-center gap-2 whitespace-nowrap">
+      <div className="flex-1 flex flex-col items-center justify-center relative pt-4 md:pt-6">
+        <div className="mb-5 text-center">
+          <h2 className="text-2xl md:text-3xl font-bold kiosk-heading inline-flex items-center justify-center gap-2 text-center flex-wrap md:flex-nowrap">
             <span>Print anything&nbsp;</span>
             <span
               style={{
@@ -85,31 +76,31 @@ export function Home() {
           </h2>
         </div>
 
-        <h3 className="text-3xl font-bold mb-16 text-center max-w-2xl kiosk-heading">
+        <h3 className="text-2xl md:text-3xl font-bold mb-10 md:mb-14 text-center max-w-2xl kiosk-heading">
           How would you like to retrieve your print job?
         </h3>
 
-        <div className="flex gap-10 w-full max-w-4xl">
+        <div className="flex flex-col md:flex-row gap-6 md:gap-10 w-full max-w-4xl">
           <button
             type="button"
             onClick={() => navigate('/scan')}
-            className="flex-1 h-64 border-2 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-6 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-panel kiosk-soft-sky"
+            className="flex-1 h-56 md:h-64 border-2 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-5 md:gap-6 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-panel kiosk-soft-sky"
           >
-            <div className="w-24 h-24 text-white rounded-full flex items-center justify-center shadow-lg kiosk-circle-sky">
-              <QrCode size={48} strokeWidth={2.5} />
+            <div className="w-20 h-20 md:w-24 md:h-24 text-white rounded-full flex items-center justify-center shadow-lg kiosk-circle-sky">
+              <QrCode size={44} strokeWidth={2.5} />
             </div>
-            <span className="text-2xl font-bold kiosk-text-sky">Scan QR Code</span>
+            <span className="text-xl md:text-2xl font-bold kiosk-text-sky">Scan QR Code</span>
           </button>
 
           <button
             type="button"
             onClick={() => navigate('/code')}
-            className="flex-1 h-64 border-2 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-6 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-panel kiosk-soft-rose"
+            className="flex-1 h-56 md:h-64 border-2 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-5 md:gap-6 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-panel kiosk-soft-rose"
           >
-            <div className="w-24 h-24 text-white rounded-full flex items-center justify-center shadow-lg kiosk-circle-rose">
-              <Keyboard size={48} strokeWidth={2.5} />
+            <div className="w-20 h-20 md:w-24 md:h-24 text-white rounded-full flex items-center justify-center shadow-lg kiosk-circle-rose">
+              <Keyboard size={44} strokeWidth={2.5} />
             </div>
-            <span className="text-2xl font-bold kiosk-text-rose">Enter Code</span>
+            <span className="text-xl md:text-2xl font-bold kiosk-text-rose">Enter Code</span>
           </button>
         </div>
       </div>
