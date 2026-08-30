@@ -11,6 +11,10 @@ interface LayoutProps {
   disableInactivityWarning?: boolean;
 }
 
+// Adjust these sizes to make the logos bigger or smaller.
+const AROX_LOGO_SIZE = 'h-[4.25rem] md:h-[4.75rem] lg:h-[5.25rem]';
+const COLLEGE_LOGO_SIZE = 'h-[5.25rem] md:h-[5.75rem] lg:h-[6.25rem]';
+
 export function Layout({ children, disableInactivityWarning = false }: LayoutProps) {
   // Pause the timer itself, not just the warning overlay, while a job is live.
   const inactivity = useInactivityTimeout(!disableInactivityWarning);
@@ -21,53 +25,34 @@ export function Layout({ children, disableInactivityWarning = false }: LayoutPro
 
   return (
     <div className="w-full h-full p-4 md:p-6 flex flex-col relative overflow-hidden kiosk-shell">
-      <header className="shrink-0 mb-4 md:mb-6 rounded-[1.75rem] border kiosk-header-shell px-4 py-3 md:px-6 md:py-4">
-        <div className="flex items-center justify-between gap-4 md:gap-6">
-          <div className="flex items-center gap-3 min-w-0 flex-1">
-            <div className="kiosk-brand-logo">
-              <img src={aroxLogo} alt="Arox" className="w-full h-full object-contain" />
-            </div>
-            <div className="hidden md:flex flex-col leading-tight min-w-0">
-              <span className="text-[0.65rem] font-semibold uppercase tracking-[0.35em] text-slate-500">
-                Arox
-              </span>
-              <span className="text-lg font-extrabold kiosk-heading whitespace-nowrap">
-                Print Kiosk
-              </span>
-            </div>
-          </div>
+      <header className="shrink-0 mb-4 md:mb-6 flex items-center justify-between gap-4 md:gap-6 px-1 md:px-2">
+        <img
+          src={aroxLogo}
+          alt="Arox"
+          className={`${AROX_LOGO_SIZE} w-auto object-contain shrink-0 drop-shadow-sm`}
+        />
 
-          <div className="flex flex-col items-center justify-center text-center min-w-0 px-2 md:px-4">
-            <span className="kiosk-campus-label">Campus Partner</span>
-            <span className="mt-1 text-sm md:text-xl font-extrabold kiosk-heading whitespace-nowrap">
-              Karpaga Vinayaga
-            </span>
-            <span className="text-[0.7rem] md:text-sm font-semibold uppercase tracking-[0.28em] text-slate-500 whitespace-nowrap">
-              Deemed to be University
-            </span>
-          </div>
-
-          <div className="flex items-center justify-end gap-3 min-w-0 flex-1">
-            <div className="kiosk-brand-logo">
-              <img src={collegeLogo} alt="Karpaga Vinayaga College" className="w-full h-full object-contain" />
-            </div>
-            {showHelp && (
-              <button
-                type="button"
-                onClick={onHelp}
-                className="w-14 h-14 md:w-16 md:h-16 flex items-center justify-center rounded-full shadow-sm border focus:outline-none focus-visible:outline-none kiosk-muted-button"
-                aria-label="Get help"
-              >
-                <HelpCircle size={32} />
-              </button>
-            )}
-          </div>
-        </div>
+        <img
+          src={collegeLogo}
+          alt="Karpaga Vinayaga College"
+          className={`${COLLEGE_LOGO_SIZE} w-auto object-contain shrink-0 drop-shadow-sm`}
+        />
       </header>
 
       <main className="flex-1 flex flex-col relative min-h-0">
         {children}
       </main>
+
+      {showHelp && (
+        <button
+          type="button"
+          onClick={onHelp}
+          className="absolute right-5 bottom-5 md:right-6 md:bottom-6 w-14 h-14 md:w-16 md:h-16 flex items-center justify-center rounded-full shadow-sm border focus:outline-none focus-visible:outline-none kiosk-muted-button z-40"
+          aria-label="Get help"
+        >
+          <HelpCircle size={32} />
+        </button>
+      )}
 
       {!disableInactivityWarning && inactivity.warningVisible && (
         <div className="absolute inset-0 z-50 flex items-center justify-center p-6 kiosk-overlay kiosk-blur">
