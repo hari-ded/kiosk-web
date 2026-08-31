@@ -12,7 +12,7 @@ interface LayoutProps {
 }
 
 // Adjust these sizes to make the logos bigger or smaller.
-const AROX_LOGO_SIZE = 'h-[4.00rem] md:h-[4.00rem] lg:h-[5.00rem]';
+const AROX_LOGO_SIZE = 'h-[3.00rem] md:h-[3.00rem] lg:h-[4.00rem]';
 const COLLEGE_LOGO_SIZE = 'h-[5.00rem] md:h-[5.00rem] lg:h-[6.00rem]';
 
 export function Layout({ children, disableInactivityWarning = false }: LayoutProps) {
