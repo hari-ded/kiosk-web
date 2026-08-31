@@ -4,7 +4,7 @@ import { HelpCircle, Clock3, ArrowRight } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { useSupport } from '../contexts/SupportContext';
 import aroxLogo from '../../assets/arox_logo.png';
-import collegeLogo from '../../assets/kvell.jpeg';
+import collegeLogo from '../../assets/kvell.png';
 
 interface LayoutProps {
   children: ReactNode;
@@ -81,3 +81,4 @@ export function Layout({ children, disableInactivityWarning = false }: LayoutPro
     </div>
   );
 }
+
