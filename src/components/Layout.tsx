@@ -12,8 +12,8 @@ interface LayoutProps {
 }
 
 // Adjust these sizes to make the logos bigger or smaller.
-const AROX_LOGO_SIZE = 'h-[4.00m] md:h-[4.75rem] lg:h-[5.25rem]';
-const COLLEGE_LOGO_SIZE = 'h-[5.00m] md:h-[5.75rem] lg:h-[6.25rem]';
+const AROX_LOGO_SIZE = 'h-[4.00rem] md:h-[4.00rem] lg:h-[5.00rem]';
+const COLLEGE_LOGO_SIZE = 'h-[5.00rem] md:h-[5.00rem] lg:h-[6.00rem]';
 
 export function Layout({ children, disableInactivityWarning = false }: LayoutProps) {
   // Pause the timer itself, not just the warning overlay, while a job is live.
