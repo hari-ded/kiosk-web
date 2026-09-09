@@ -45,6 +45,10 @@ export function formatSeconds(seconds: number) {
   return `${rounded % 1 === 0 ? rounded.toFixed(0) : rounded.toFixed(1)}s`;
 }
 
+export function getDisplayFilename(filename: string) {
+  return filename.replace(/^\d{8}_\d{6}_[^_]+_(.+)$/, '$1');
+}
+
 export function getFixedSpoolDelaySeconds() {
   return FIXED_SPOOL_DELAY_SECONDS;
 }

@@ -15,10 +15,10 @@ export const PRINTER_SOCKET_URL = PRINTER_BACKEND_ROOT;
 
 export type PrinterSocket = Socket;
 
-export function createPrinterSocket(): PrinterSocket {
+export function createPrinterSocket(auth?: Record<string, string>): PrinterSocket {
   return io(PRINTER_SOCKET_URL, {
     autoConnect: false,
     transports: ['websocket', 'polling'],
-    withCredentials: false,
+    withCredentials: false,`n    auth,
   });
 }

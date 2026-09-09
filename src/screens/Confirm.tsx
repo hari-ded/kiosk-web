@@ -5,7 +5,7 @@ import { PrintJob } from '../types';
 import { Layout } from '../components/Layout';
 import { ArrowLeft, ArrowUpDown, Clock3, Copy, FileText, Hash, Layers3, LayoutGrid, Lock, RotateCw, ShieldCheck, Sparkles } from 'lucide-react';
 import { playSound } from '../utils/audio';
-import { formatSeconds, summarizePrintJob } from '../utils/printJob';
+import { formatSeconds, getDisplayFilename, summarizePrintJob } from '../utils/printJob';
 
 function readStoredJob() {
   try {
@@ -68,6 +68,7 @@ export function Confirm() {
   }
 
   const summary = summarizePrintJob(job);
+  const displayFilename = getDisplayFilename(job.filename);
   const colorLabel = job.color ? 'Color' : 'Black & White';
   const etaLabel = `~${formatSeconds(summary.totalWaitSeconds)}`;
 
@@ -158,12 +159,12 @@ export function Confirm() {
               <div className="w-16 h-16 rounded-full flex items-center justify-center text-white shadow-md kiosk-circle-rose">
                 <FileText size={32} />
               </div>
-              <h3 className="text-2xl font-bold kiosk-heading">{job.filename}</h3>
+              <h3 className="text-2xl font-bold kiosk-heading">{displayFilename}</h3>
               <p className="text-lg font-medium kiosk-copy">Job {job.pickup_code}</p>
             </div>
 
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-3">
-              <StatCard icon={<FileText size={22} />} label="Filename" value={job.filename} />
+              <StatCard icon={<FileText size={22} />} label="Filename" value={displayFilename} />
               <StatCard icon={<Hash size={22} />} label="Pickup Code" value={job.pickup_code} />
               <StatCard icon={<ArrowUpDown size={22} />} label="Orientation" value={summary.orientation} />
               <StatCard icon={<LayoutGrid size={22} />} label="Pages / Sheet" value={`${summary.pagesPerSheet}`} />
