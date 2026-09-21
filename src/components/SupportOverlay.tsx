@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+﻿import { useEffect, useRef, useState } from 'react';
 import { createSupportCall, getSupportCall, updateSupportCall } from '../api';
 import { X, Mic, MicOff, Phone, AlertCircle, Loader2 } from 'lucide-react';
 import { createPrinterSocket, type PrinterSocket } from '../utils/printerTransport';
@@ -10,7 +10,7 @@ interface Props {
   onClose: () => void;
 }
 
-type CallState = 'category' | 'description' | 'requesting_mic' | 'waiting' | 'active' | 'ended';
+type CallState = 'category' | 'description' | 'requesting_mic' | 'waiting' | 'on_hold' | 'active' | 'ended';
 
 const SUPPORT_CATEGORIES = [
   { id: 'paper_jam', label: 'Paper Jam' },
@@ -69,57 +69,66 @@ export function SupportOverlay({ onClose }: Props) {
   useEffect(() => cleanupCall, []);
 
   const startRealtimeCall = async (callData: SupportCall) => {
-    const peerConnection = new RTCPeerConnection({
-      iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        ...(import.meta.env.VITE_RTC_TURN_URL
-          ? [{
-              urls: import.meta.env.VITE_RTC_TURN_URL,
-              username: import.meta.env.VITE_RTC_TURN_USERNAME,
-              credential: import.meta.env.VITE_RTC_TURN_CREDENTIAL,
-            }]
-          : []),
-      ],
-    });
     const socket = createPrinterSocket(
       callData.access_token ? { callToken: callData.access_token } : undefined,
     );
-
-    peerConnectionRef.current = peerConnection;
     socketRef.current = socket;
 
-    peerConnection.onicecandidate = event => {
-      if (event.candidate) {
-        socket.emit('support:ice-candidate', {
-          callId: callData.id,
-          call_id: callData.id,
-          candidate: event.candidate.toJSON(),
-        });
-      }
+    const createPeerConnection = () => {
+      const peerConnection = new RTCPeerConnection({
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          ...(import.meta.env.VITE_RTC_TURN_URL ? [{
+            urls: import.meta.env.VITE_RTC_TURN_URL,
+            username: import.meta.env.VITE_RTC_TURN_USERNAME,
+            credential: import.meta.env.VITE_RTC_TURN_CREDENTIAL,
+          }] : []),
+        ],
+      });
+      peerConnectionRef.current = peerConnection;
+      pendingRemoteCandidatesRef.current = [];
+      hasRemoteDescriptionRef.current = false;
+
+      peerConnection.onicecandidate = event => {
+        if (event.candidate) {
+          socket.emit('support:ice-candidate', {
+            callId: callData.id,
+            call_id: callData.id,
+            candidate: event.candidate.toJSON(),
+          });
+        }
+      };
+      peerConnection.ontrack = event => {
+        const [remoteStream] = event.streams;
+        if (remoteStream && remoteAudioRef.current) {
+          remoteAudioRef.current.srcObject = remoteStream;
+          void remoteAudioRef.current.play().catch(() => undefined);
+        }
+      };
+      peerConnection.onconnectionstatechange = () => {
+        if (peerConnection.connectionState === 'connected') {
+          setConnectionStatus('An agent joined the call');
+          setCallState('active');
+        } else if (peerConnection.connectionState === 'failed') {
+          setError('The live support connection failed. Please wait for another agent or try again.');
+          setCallState('waiting');
+        }
+      };
+      const localStream = mediaStreamRef.current;
+      localStream?.getTracks().forEach(track => peerConnection.addTrack(track, localStream));
+      return peerConnection;
     };
 
-    peerConnection.ontrack = event => {
-      const [remoteStream] = event.streams;
-      if (remoteStream && remoteAudioRef.current) {
-        remoteAudioRef.current.srcObject = remoteStream;
-        void remoteAudioRef.current.play().catch(() => undefined);
-      }
-    };
-
-    peerConnection.onconnectionstatechange = () => {
-      if (peerConnection.connectionState === 'connected') {
-        setConnectionStatus('An agent joined the call');
-        setCallState('active');
-      } else if (peerConnection.connectionState === 'failed') {
-        setError('The live support connection failed. Please try again.');
-      }
-    };
+    let peerConnection = createPeerConnection();
 
     socket.on('support:offer', async payload => {
-      if (String(payload?.callId ?? payload?.call_id ?? '') !== callData.id || !payload?.sdp) {
-        return;
-      }
+      if (String(payload?.callId ?? payload?.call_id ?? '') !== callData.id || !payload?.sdp) return;
       try {
+        // A replacement agent sends a fresh offer after the previous agent drops.
+        if (hasRemoteDescriptionRef.current || peerConnection.signalingState === 'closed') {
+          peerConnection.close();
+          peerConnection = createPeerConnection();
+        }
         await peerConnection.setRemoteDescription({ type: 'offer', sdp: payload.sdp });
         hasRemoteDescriptionRef.current = true;
         for (const candidate of pendingRemoteCandidatesRef.current.splice(0)) {
@@ -127,59 +136,49 @@ export function SupportOverlay({ onClose }: Props) {
         }
         const answer = await peerConnection.createAnswer();
         await peerConnection.setLocalDescription(answer);
-        socket.emit('support:answer', {
-          callId: callData.id,
-          call_id: callData.id,
-          sdp: answer.sdp,
-        });
+        socket.emit('support:answer', { callId: callData.id, call_id: callData.id, sdp: answer.sdp });
       } catch {
         setError('Failed to establish the live support connection.');
       }
     });
 
     socket.on('support:ice-candidate', async payload => {
-      if (String(payload?.callId ?? payload?.call_id ?? '') !== callData.id || !payload?.candidate) {
-        return;
-      }
+      if (String(payload?.callId ?? payload?.call_id ?? '') !== callData.id || !payload?.candidate) return;
       const candidate = payload.candidate as RTCIceCandidateInit;
       if (!hasRemoteDescriptionRef.current) {
         pendingRemoteCandidatesRef.current.push(candidate);
         return;
       }
-      try {
-        await peerConnection.addIceCandidate(candidate);
-      } catch {
-        // Ignore an individual ICE candidate failure.
-      }
+      try { await peerConnection.addIceCandidate(candidate); } catch { /* Ignore one invalid ICE candidate. */ }
     });
 
     socket.on('support:waiting', payload => {
       setConnectionStatus(payload?.message || 'Please wait while we connect you to support.');
+      setCallState('waiting');
     });
-
+    socket.on('support:held', () => {
+      mediaStreamRef.current?.getAudioTracks().forEach(track => { track.enabled = false; });
+      setConnectionStatus('The support agent placed this call on hold.');
+      setCallState('on_hold');
+    });
+    socket.on('support:resumed', () => {
+      mediaStreamRef.current?.getAudioTracks().forEach(track => { track.enabled = !isMuted; });
+      setConnectionStatus('The support agent resumed the call.');
+      setCallState('active');
+    });
     socket.on('support:agent-disconnected', () => {
+      peerConnection.close();
+      peerConnection = createPeerConnection();
       setConnectionStatus('The agent disconnected. Waiting for another agent...');
       setCallState('waiting');
     });
-
     socket.on('support:ended', payload => {
       if (String(payload?.callId ?? payload?.call_id ?? '') !== callData.id) return;
       cleanupCall();
       setConnectionStatus('The support agent ended the call');
       setCallState('ended');
     });
-
-    socket.on('connect_error', () => {
-      setError('Unable to connect to live support. Please try again.');
-    });
-
-    const localStream = mediaStreamRef.current;
-    if (localStream) {
-      for (const track of localStream.getTracks()) {
-        peerConnection.addTrack(track, localStream);
-      }
-    }
-
+    socket.on('connect_error', () => setError('Unable to connect to live support. Please try again.'));
     socket.on('connect', () => {
       socket.emit('support:kiosk-join', {
         callId: callData.id,
@@ -192,9 +191,8 @@ export function SupportOverlay({ onClose }: Props) {
     });
     socket.connect();
   };
-
   useEffect(() => {
-    if (!callId || (callState !== 'waiting' && callState !== 'active')) {
+    if (!callId || (callState !== 'waiting' && callState !== 'on_hold' && callState !== 'active')) {
       return;
     }
 
@@ -211,6 +209,13 @@ export function SupportOverlay({ onClose }: Props) {
       if (liveCall.status === 'connected') {
         setConnectionStatus('An agent joined the call');
         setCallState('active');
+        return;
+      }
+
+      if (liveCall.status === 'on_hold') {
+        mediaStreamRef.current?.getAudioTracks().forEach(track => { track.enabled = false; });
+        setConnectionStatus('The support agent placed this call on hold.');
+        setCallState('on_hold');
         return;
       }
 
@@ -279,17 +284,17 @@ export function SupportOverlay({ onClose }: Props) {
 
   const handleEndCall = async () => {
     const activeCallId = callId;
-    cleanupCall();
     if (activeCallId) {
       socketRef.current?.emit('support:end-call', { callId: activeCallId, call_id: activeCallId });
       void updateSupportCall(activeCallId, 'closed', callToken ?? undefined);
     }
+    cleanupCall();
     onClose();
   };
 
   return (
-    <audio ref={remoteAudioRef} autoPlay className="hidden" />
     <div className="absolute inset-0 z-50 flex items-center justify-center p-8 kiosk-overlay kiosk-blur">
+      <audio ref={remoteAudioRef} autoPlay className="hidden" />
       <div className="rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden flex flex-col kiosk-panel-strong">
         <div className="h-20 border-0 px-8 flex items-center justify-between shrink-0 text-white kiosk-primary-rose">
           <h2 className="text-2xl font-bold flex items-center gap-3">
@@ -368,7 +373,7 @@ export function SupportOverlay({ onClose }: Props) {
               <Loader2 size={64} className="text-rose-600 mb-8 animate-spin" />
               <h3 className="text-2xl font-bold mb-4 kiosk-heading">Connecting to Support...</h3>
               <p className="text-xl kiosk-copy max-w-xl">{connectionStatus}</p>
-              <p className="text-lg text-gray-500 mt-4">Kiosk {KIOSK_ID}{callId ? ` · ${callId}` : ''}</p>
+              <p className="text-lg text-gray-500 mt-4">Kiosk {KIOSK_ID}{callId ? ` Â· ${callId}` : ''}</p>
               <button
                 onClick={handleEndCall}
                 className="mt-10 h-16 px-10 rounded-xl text-xl font-bold kiosk-muted-button"
@@ -378,6 +383,15 @@ export function SupportOverlay({ onClose }: Props) {
             </div>
           )}
 
+          {callState === 'on_hold' && (
+            <div className="flex-1 flex flex-col items-center justify-center text-center">
+              <Loader2 size={64} className="text-amber-500 mb-8 animate-pulse" />
+              <h3 className="text-2xl font-bold mb-4 kiosk-heading">Call on Hold</h3>
+              <p className="text-xl kiosk-copy max-w-xl">{connectionStatus}</p>
+              <p className="text-lg text-gray-500 mt-4">Please stay near the kiosk. Your microphone will reconnect when support resumes.</p>
+              <button onClick={handleEndCall} className="mt-10 h-16 px-10 rounded-xl text-xl font-bold kiosk-muted-button">End Call</button>
+            </div>
+          )}
           {callState === 'active' && (
             <div className="flex-1 flex flex-col items-center justify-center">
               <div className="w-32 h-32 rounded-full flex items-center justify-center mb-8 relative kiosk-soft-emerald">

@@ -1,8 +1,20 @@
-﻿# Changelog
+# Changelog
 
 All notable changes to AROX Web Kiosk are documented in this file.
 
 The repository does not currently contain a formal tagged release history, so the entries below summarize the release line as it exists in the codebase and current deployment flow.
+
+## [Unreleased]
+
+### Added
+
+- Documented optional TURN server settings and rollout requirements for reliable live support calls across restrictive networks.
+
+### Changed
+
+- Routed all browser `/api/*` traffic through the kiosk proxy, including health checks.
+- Kept support-call audio inside the active overlay and emit the call-end signal before local media cleanup.
+- Corrected the printer Socket.IO transport configuration.
 
 ## [2.1.8] - 2026-08-26
 

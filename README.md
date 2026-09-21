@@ -1,4 +1,4 @@
-﻿# AROX Web Kiosk
+# AROX Web Kiosk
 
 Current release: `2.1.8`
 
@@ -94,7 +94,8 @@ Key variables:
 
 - `VITE_API_URL` - API base URL for the browser. The default is `/api`, which should be proxied server-side in production.
 - `VITE_KIOSK_ID` - Kiosk identifier used for consumables, jobs, alerts, and support calls.
-- `VITE_PRINTER_BACKEND_URL` - Backend root used by the printer realtime socket. Defaults to the production backend root.
+- `VITE_PRINTER_BACKEND_URL` - Backend root used by printer and support realtime sockets. Defaults to the production backend root.
+- `VITE_RTC_TURN_URL`, `VITE_RTC_TURN_USERNAME`, `VITE_RTC_TURN_CREDENTIAL` - Optional TURN credentials for reliable kiosk support calls across restrictive networks.
 - `GEMINI_API_KEY` - Required only if you are using the Gemini-backed features in this environment.
 - `APP_URL` - Host URL for the deployed app.
 
@@ -160,8 +161,10 @@ npm run start
 ## Notes For Production Teams
 
 - Keep the kiosk ID consistent across the kiosk UI and the support console.
-- Ensure microphone permission is available on the agent workstation for live support calls.
+- Ensure microphone permission is available on the kiosk browser and agent workstation for live support calls.
+- Configure the same TURN service for the kiosk build and mobile app (`RTC_TURN_URL`, `RTC_TURN_USERNAME`, `RTC_TURN_CREDENTIAL`) before production rollout; STUN-only calls are not reliable across all NATs.
 - Use the same backend origin for kiosk and agent signaling when possible to reduce CORS and session issues.
+- The current support relay keeps active socket state in process memory; deploy the backend with one instance for rollout, or add a shared Socket.IO message queue before enabling horizontal scale.
 - Verify the support queue and live call endpoints before rollout so the kiosk can escalate issues cleanly.
 - Verify the release OTP route contract after every backend deployment; a route registration regression will surface as a 404 at the kiosk layer.
 - Treat OTP mismatches as an integration fault until backend storage and kiosk payloads have been checked together.

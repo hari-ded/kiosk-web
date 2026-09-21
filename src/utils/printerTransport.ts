@@ -19,6 +19,7 @@ export function createPrinterSocket(auth?: Record<string, string>): PrinterSocke
   return io(PRINTER_SOCKET_URL, {
     autoConnect: false,
     transports: ['websocket', 'polling'],
-    withCredentials: false,`n    auth,
+    withCredentials: false,
+    auth,
   });
 }

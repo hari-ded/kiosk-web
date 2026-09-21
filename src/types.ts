@@ -28,7 +28,7 @@ export interface SupportCall {
   kiosk_id: string;
   category: string;
   description: string;
-  status: 'open' | 'connected' | 'closed';
+  status: 'open' | 'connected' | 'on_hold' | 'closed';
   created_at: string;
   updated_at: string;
   connected_at: string | null;

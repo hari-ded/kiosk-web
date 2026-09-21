@@ -1,4 +1,4 @@
-import express from 'express';
+﻿import express from 'express';
 import crypto from 'crypto';
 import path from 'path';
 import { createServer as createViteServer } from 'vite';
@@ -640,7 +640,10 @@ async function startServer() {
 
   app.get('/api/support/calls/:call_id', async (req, res) => {
     if (BACKEND_SERVICE_TOKEN) {
-      const backendRes = await proxyBackend(`/support/calls/${req.params.call_id}`);
+      const callToken = getSupportToken(req);
+      const backendRes = await proxyBackend(`/support/calls/${req.params.call_id}`, {
+        headers: callToken ? { 'X-AROX-CALL-TOKEN': callToken } : undefined,
+      });
       if (!backendRes) {
         return res.status(503).json({ success: false, error: 'Backend proxy not configured' });
       }
@@ -663,7 +666,7 @@ async function startServer() {
     if (BACKEND_SERVICE_TOKEN) {
       const backendRes = await proxyBackend(`/support/calls/${req.params.call_id}`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', ...(getSupportToken(req) ? { 'X-AROX-CALL-TOKEN': getSupportToken(req) } : {}) },
         body: JSON.stringify(req.body || {}),
       });
       if (!backendRes) {
