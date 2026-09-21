@@ -1,4 +1,4 @@
-import { PrintJob, Consumables, SupportCall } from './types';
+﻿import { PrintJob, Consumables, SupportCall } from './types';
 
 const RAW_API_URL = import.meta.env.VITE_API_URL ?? '/api';
 
@@ -196,8 +196,11 @@ export async function createSupportCall(category: string, description: string = 
     headers: buildHeaders(),
     body: JSON.stringify({ kiosk_id: KIOSK_ID, category, description })
   });
-  if (!res.ok) throw new Error('Failed to create support call');
   const data = await readJsonResponse<any>(res);
+  if (!res.ok) {
+    throw new Error(data?.message || data?.error || 'Failed to create support call');
+  }
+
   if (!data) throw new Error('Failed to create support call');
   const call = (data.call || data) as Record<string, any>;
   const accessToken = String(data.access_token || data.call_token || call.access_token || call.call_token || '');

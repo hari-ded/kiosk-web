@@ -266,7 +266,7 @@ export function SupportOverlay({ onClose }: Props) {
       if (err?.name === 'NotAllowedError' || err?.name === 'NotFoundError') {
         setError('Microphone permission is required for live support calls.');
       } else {
-        setError('Failed to connect to support. Please try again.');
+        setError(err instanceof Error && err.message ? err.message : 'Failed to connect to support. Please try again.');
       }
       setCallState('description');
     }
