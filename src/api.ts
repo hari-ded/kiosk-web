@@ -241,6 +241,13 @@ export async function getSupportCall(callId: string, callToken?: string): Promis
   return data.call as SupportCall;
 }
 
+export async function getSupportIceServers(callId: string, callToken?: string): Promise<RTCIceServer[] | null> {
+  const headers = callToken ? buildHeaders({ 'X-AROX-CALL-TOKEN': callToken }) : buildHeaders();
+  const res = await fetchSupportApi(`/support/calls/${callId}/ice-servers`, { headers });
+  if (!res.ok) return null;
+  const data = await readJsonResponse<any>(res);
+  return Array.isArray(data?.ice_servers) ? data.ice_servers as RTCIceServer[] : null;
+}
 export async function updateSupportCall(callId: string, status: SupportCall['status'], callToken?: string): Promise<SupportCall | null> {
   const headers = callToken ? buildHeaders({ 'X-AROX-CALL-TOKEN': callToken }) : buildHeaders();
   const res = await fetchSupportApi(`/support/calls/${callId}`, {

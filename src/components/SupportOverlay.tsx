@@ -1,10 +1,11 @@
 ﻿import { useEffect, useRef, useState } from 'react';
-import { createSupportCall, getSupportCall, updateSupportCall } from '../api';
+import { createSupportCall, getSupportCall, getSupportIceServers, updateSupportCall } from '../api';
 import { X, Mic, MicOff, Phone, AlertCircle, Loader2 } from 'lucide-react';
 import { createPrinterSocket, type PrinterSocket } from '../utils/printerTransport';
 import type { SupportCall } from '../types';
 
 const KIOSK_ID = import.meta.env.VITE_KIOSK_ID || '1';
+const FALLBACK_ICE_SERVERS: RTCIceServer[] = [{ urls: 'stun:stun.l.google.com:19302' }];
 
 interface Props {
   onClose: () => void;
@@ -68,7 +69,7 @@ export function SupportOverlay({ onClose }: Props) {
 
   useEffect(() => cleanupCall, []);
 
-  const startRealtimeCall = async (callData: SupportCall) => {
+  const startRealtimeCall = async (callData: SupportCall, iceServers: RTCIceServer[]) => {
     const socket = createPrinterSocket(
       callData.access_token ? { callToken: callData.access_token } : undefined,
     );
@@ -76,14 +77,8 @@ export function SupportOverlay({ onClose }: Props) {
 
     const createPeerConnection = () => {
       const peerConnection = new RTCPeerConnection({
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          ...(import.meta.env.VITE_RTC_TURN_URL ? [{
-            urls: import.meta.env.VITE_RTC_TURN_URL,
-            username: import.meta.env.VITE_RTC_TURN_USERNAME,
-            credential: import.meta.env.VITE_RTC_TURN_CREDENTIAL,
-          }] : []),
-        ],
+        iceServers: iceServers.length ? iceServers : FALLBACK_ICE_SERVERS,
+
       });
       peerConnectionRef.current = peerConnection;
       pendingRemoteCandidatesRef.current = [];
@@ -102,15 +97,19 @@ export function SupportOverlay({ onClose }: Props) {
         const [remoteStream] = event.streams;
         if (remoteStream && remoteAudioRef.current) {
           remoteAudioRef.current.srcObject = remoteStream;
-          void remoteAudioRef.current.play().catch(() => undefined);
+          void remoteAudioRef.current.play().catch(() => {
+            setError('Remote audio was blocked by this browser. Tap the screen, then try the call again.');
+          });
         }
       };
       peerConnection.onconnectionstatechange = () => {
         if (peerConnection.connectionState === 'connected') {
+          setError(null);
           setConnectionStatus('An agent joined the call');
           setCallState('active');
         } else if (peerConnection.connectionState === 'failed') {
-          setError('The live support connection failed. Please wait for another agent or try again.');
+          setError('Secure audio could not connect. Please try again or contact support.');
+          setConnectionStatus('Audio connection failed.');
           setCallState('waiting');
         }
       };
@@ -163,8 +162,13 @@ export function SupportOverlay({ onClose }: Props) {
     });
     socket.on('support:resumed', () => {
       mediaStreamRef.current?.getAudioTracks().forEach(track => { track.enabled = !isMuted; });
-      setConnectionStatus('The support agent resumed the call.');
-      setCallState('active');
+      if (peerConnection.connectionState === 'connected') {
+        setConnectionStatus('The support agent resumed the call.');
+        setCallState('active');
+      } else {
+        setConnectionStatus('The agent resumed the call. Establishing secure audio...');
+        setCallState('waiting');
+      }
     });
     socket.on('support:agent-disconnected', () => {
       peerConnection.close();
@@ -207,8 +211,13 @@ export function SupportOverlay({ onClose }: Props) {
       }
 
       if (liveCall.status === 'connected') {
-        setConnectionStatus('An agent joined the call');
-        setCallState('active');
+        if (peerConnectionRef.current?.connectionState === 'connected') {
+          setConnectionStatus('An agent joined the call');
+          setCallState('active');
+        } else {
+          setConnectionStatus('An agent joined. Establishing secure audio...');
+          setCallState('waiting');
+        }
         return;
       }
 
@@ -260,7 +269,8 @@ export function SupportOverlay({ onClose }: Props) {
       setCallId(callData.id);
       setCallToken(callData.access_token || null);
       setConnectionStatus('Waiting for the next available agent');
-      await startRealtimeCall(callData);
+      const iceServers = await getSupportIceServers(String(callData.id), callData.access_token);
+      await startRealtimeCall(callData, iceServers || FALLBACK_ICE_SERVERS);
     } catch (err: any) {
       cleanupCall();
       if (err?.name === 'NotAllowedError' || err?.name === 'NotFoundError') {

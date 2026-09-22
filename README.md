@@ -95,7 +95,7 @@ Key variables:
 - `VITE_API_URL` - API base URL for the browser. The default is `/api`, which should be proxied server-side in production.
 - `VITE_KIOSK_ID` - Kiosk identifier used for consumables, jobs, alerts, and support calls.
 - `VITE_PRINTER_BACKEND_URL` - Backend root used by printer and support realtime sockets. Defaults to the production backend root.
-- `VITE_RTC_TURN_URL`, `VITE_RTC_TURN_USERNAME`, `VITE_RTC_TURN_CREDENTIAL` - Optional TURN credentials for reliable kiosk support calls across restrictive networks.
+- Live-call TURN credentials are issued per call by the backend. Do not configure TURN secrets as `VITE_` variables.
 - `GEMINI_API_KEY` - Required only if you are using the Gemini-backed features in this environment.
 - `APP_URL` - Host URL for the deployed app.
 
