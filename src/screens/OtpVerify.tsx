@@ -85,14 +85,14 @@ export function OtpVerify() {
     setError(null);
 
     try {
-      const valid = await verifyOtp(job.pickup_code, otp);
+      const valid = await verifyOtp(job.pickup_code, otp, job.id);
       if (!valid) {
         setError('Invalid OTP code. Please try again.');
         setLoading(false);
         return;
       }
 
-      const releaseSuccess = await releaseJob(job.pickup_code);
+      const releaseSuccess = await releaseJob(job.pickup_code, job.id);
       if (releaseSuccess) {
         navigate(`/status/${job.id}`, { state: { job } });
       } else {

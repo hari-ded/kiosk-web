@@ -1,4 +1,4 @@
-﻿export interface PrintJob {
+export interface PrintJob {
   id: string;
   filename: string;
   pages: number;
@@ -7,6 +7,8 @@
   orientation?: string;
   pages_per_sheet?: number;
   duplex?: boolean;
+  page_range?: string | null;
+  paper_size?: string | null;
   status: string;
   pickup_code: string;
   estimated_time_seconds: number;

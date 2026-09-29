@@ -63,13 +63,15 @@ export function Status() {
 
   useEffect(() => {
     if (!job) {
-      navigate('/', { replace: true });
+      if (sessionStorage.getItem('arox_pickup_order_code')) navigate('/files', { replace: true });
+      else navigate('/', { replace: true });
       return;
     }
 
     if (!job.id || String(job.id).trim() === 'undefined') {
       sessionStorage.removeItem('arox_current_job');
-      navigate('/', { replace: true });
+      if (sessionStorage.getItem('arox_pickup_order_code')) navigate('/files', { replace: true });
+      else navigate('/', { replace: true });
       return;
     }
 
@@ -96,7 +98,8 @@ export function Status() {
 
     const returnHome = () => {
       sessionStorage.setItem('arox_returning_home_audio', 'thank_you');
-      navigate('/', { replace: true });
+      if (sessionStorage.getItem('arox_pickup_order_code')) navigate('/files', { replace: true });
+      else navigate('/', { replace: true });
     };
 
     const schedulePoll = (delay: number) => {
@@ -328,7 +331,7 @@ export function Status() {
               type="button"
               onClick={() => {
                 sessionStorage.setItem('arox_returning_home_audio', 'thank_you');
-                navigate('/');
+                sessionStorage.getItem('arox_pickup_order_code') ? navigate('/files') : navigate('/');
               }}
               className="w-full h-20 text-white text-2xl font-bold rounded-xl shadow-md flex items-center justify-center gap-4 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-primary-emerald"
             >

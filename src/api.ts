@@ -1,4 +1,4 @@
-﻿import { PrintJob, Consumables, SupportCall } from './types';
+import { PrintJob, Consumables, SupportCall } from './types';
 
 const RAW_API_URL = import.meta.env.VITE_API_URL ?? '/api';
 
@@ -72,59 +72,47 @@ export async function fetchConsumables(): Promise<Consumables> {
   };
 }
 
-export async function validateJobCode(code: string): Promise<{ job?: PrintJob, error?: string }> {
+export async function validateJobCode(code: string): Promise<{ job?: PrintJob, jobs?: PrintJob[], error?: string }> {
   try {
     const pickupCode = normalizePickupCode(code);
-    const res = await fetch(`${API_URL}/job/${encodeURIComponent(pickupCode)}?kiosk_id=${KIOSK_ID}`, {
-      cache: 'no-store',
-      headers: buildHeaders()
+    const res = await fetch(API_URL + '/job/' + encodeURIComponent(pickupCode) + '?kiosk_id=' + KIOSK_ID, {
+      cache: 'no-store', headers: buildHeaders()
     });
-
     const data = await readJsonResponse<any>(res);
-    if (!data) {
-      return { error: 'Server returned an invalid response' };
-    }
-
-    if (data.success === false) {
-      return { error: data.error || data.message || 'Invalid pickup code' };
-    }
-
-    // Older deployed backend revisions return `id`, while the current API
-    // contract returns `upload_id`. Do not create a job with an undefined id:
-    // it would otherwise cause the status screen to poll `/job_status/undefined`.
-    const uploadId = data.upload_id ?? data.id;
-    if (uploadId === undefined || uploadId === null || String(uploadId).trim() === '') {
-      return { error: data.error || data.message || 'Server returned a job without an ID' };
-    }
-
-    return {
-      job: {
-        id: String(uploadId),
-        filename: data.filename || `Job ${code}`,
-        pages: Number(data.pages) || 1,
-        copies: Number(data.copies) || 1,
-        color: Boolean(data.color),
-        orientation: data.orientation || data.print_orientation || 'Portrait',
-        pages_per_sheet: Number(data.pages_per_sheet ?? data.page_per_sheet ?? 1) || 1,
-        duplex: parseBoolean(data.duplex ?? data.double_sided ?? data.is_duplex ?? data.sides),
-        status: data.status || 'unknown',
-        pickup_code: pickupCode,
-        estimated_time_seconds: Number(data.estimated_time_seconds) || 0,
-        email: data.email || null
+    if (!data) return { error: 'Server returned an invalid response' };
+    if (!res.ok || data.success === false) return { error: data.error || data.message || 'Invalid pickup code' };
+    const rawJobs = Array.isArray(data.jobs) ? data.jobs : [data];
+    const jobs: PrintJob[] = rawJobs.map((raw: any) => {
+      const uploadId = raw.upload_id ?? raw.id;
+      if (uploadId === undefined || uploadId === null || String(uploadId).trim() === '') {
+        throw new Error('Server returned a file without an ID');
       }
-    };
-  } catch {
-    return { error: 'Network error or server unavailable' };
+      return {
+        id: String(uploadId), filename: raw.filename || ('Job ' + code),
+        pages: Number(raw.pages) || 1, copies: Number(raw.copies) || 1,
+        color: Boolean(raw.color), orientation: raw.orientation || raw.print_orientation || 'Portrait',
+        pages_per_sheet: Number(raw.pages_per_sheet ?? raw.page_per_sheet ?? 1) || 1,
+        page_range: raw.page_range || null,
+        paper_size: raw.paper_size || null,
+        duplex: parseBoolean(raw.duplex ?? raw.double_sided ?? raw.is_duplex ?? raw.sides),
+        status: raw.status || 'unknown', pickup_code: raw.pickup_code || pickupCode,
+        estimated_time_seconds: Number(raw.estimated_time_seconds) || 0,
+        email: raw.email || null,
+      };
+    });
+    const job = jobs.find(item => item.status.toLowerCase() === 'awaitingrelease') || jobs[0];
+    return { job, jobs };
+  } catch (error) {
+    return { error: error instanceof Error ? error.message : 'Network error or server unavailable' };
   }
 }
-
-export async function requestOtp(code: string): Promise<boolean> {
+export async function requestOtp(code: string, uploadId?: string): Promise<boolean> {
   const pickupCode = normalizePickupCode(code);
   const res = await fetch(`${API_URL}/job/${pickupCode}/request_release_otp`, {
     method: 'POST',
     cache: 'no-store',
     headers: buildHeaders(),
-    body: JSON.stringify({ kiosk_id: KIOSK_ID })
+    body: JSON.stringify({ kiosk_id: KIOSK_ID, upload_id: uploadId })
   });
   if (!res.ok) return false;
   const data = await readJsonResponse<any>(res);
@@ -132,13 +120,13 @@ export async function requestOtp(code: string): Promise<boolean> {
   return data.success;
 }
 
-export async function verifyOtp(code: string, otp: string): Promise<boolean> {
+export async function verifyOtp(code: string, otp: string, uploadId?: string): Promise<boolean> {
   const pickupCode = normalizePickupCode(code);
   const res = await fetch(`${API_URL}/job/${pickupCode}/verify_release_otp`, {
     method: 'POST',
     cache: 'no-store',
     headers: buildHeaders(),
-    body: JSON.stringify({ kiosk_id: KIOSK_ID, otp })
+    body: JSON.stringify({ kiosk_id: KIOSK_ID, otp, upload_id: uploadId })
   });
   if (!res.ok) return false;
   const data = await readJsonResponse<any>(res);
@@ -146,13 +134,13 @@ export async function verifyOtp(code: string, otp: string): Promise<boolean> {
   return data.success;
 }
 
-export async function releaseJob(code: string): Promise<boolean> {
+export async function releaseJob(code: string, uploadId?: string): Promise<boolean> {
   const pickupCode = normalizePickupCode(code);
   const res = await fetch(`${API_URL}/release_job`, {
     method: 'POST',
     cache: 'no-store',
     headers: buildHeaders(),
-    body: JSON.stringify({ pickup_code: pickupCode, kiosk_id: KIOSK_ID })
+    body: JSON.stringify({ pickup_code: pickupCode, kiosk_id: KIOSK_ID, upload_id: uploadId })
   });
   if (!res.ok) return false;
   const data = await readJsonResponse<any>(res);

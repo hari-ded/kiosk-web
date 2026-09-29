@@ -54,13 +54,10 @@ export function QrScan() {
             const result = await validateJobCode(code);
             if (!mounted) return;
 
-            if (result.job) {
-              sessionStorage.setItem('arox_current_job', JSON.stringify(result.job));
-              scanner.stop().then(() => {
-                navigate(`/confirm/${result.job!.id}`, { state: { job: result.job } });
-              }).catch(() => {
-                navigate(`/confirm/${result.job!.id}`, { state: { job: result.job } });
-              });
+            if (result.job && result.jobs?.length) {
+              sessionStorage.setItem('arox_pickup_order_code', result.job.pickup_code);
+              sessionStorage.setItem('arox_pickup_jobs', JSON.stringify(result.jobs));
+              scanner.stop().then(() => navigate('/files')).catch(() => navigate('/files'));
             } else {
               setError(result.error || 'Invalid QR code. Please try again.');
               setTimeout(() => {

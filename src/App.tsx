@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Home } from './screens/Home';
 import { ManualCode } from './screens/ManualCode';
+import { OrderFiles } from './screens/OrderFiles';
 import { QrScan } from './screens/QrScan';
 import { Confirm } from './screens/Confirm';
 import { OtpVerify } from './screens/OtpVerify';
@@ -28,6 +29,7 @@ export default function App() {
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/code" element={<ManualCode />} />
+            <Route path="/files" element={<OrderFiles />} />
             <Route path="/scan" element={<QrScan />} />
             <Route path="/confirm/:jobId" element={<Confirm />} />
             <Route path="/otp/:jobId" element={<OtpVerify />} />

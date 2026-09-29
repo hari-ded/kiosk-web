@@ -111,7 +111,7 @@ export function Confirm() {
       }
 
       if (job.email) {
-        const success = await requestOtp(job.pickup_code);
+        const success = await requestOtp(job.pickup_code, job.id);
         if (!success) {
           setError('Failed to send OTP. Please try again.');
           setLoading(false);
@@ -123,7 +123,7 @@ export function Confirm() {
         return;
       }
 
-      const releaseSuccess = await releaseJob(job.pickup_code);
+      const releaseSuccess = await releaseJob(job.pickup_code, job.id);
       if (releaseSuccess) {
         navigate(`/status/${job.id}`, { state: { job } });
       } else {
@@ -142,7 +142,7 @@ export function Confirm() {
         <div className="flex items-center mb-4 relative">
           <button
             type="button"
-            onClick={() => navigate('/')}
+            onClick={() => navigate('/files')}
             className="absolute left-0 h-16 px-8 flex items-center gap-3 rounded-xl shadow-sm text-xl font-bold focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-muted-button"
           >
             <ArrowLeft size={28} />
@@ -175,7 +175,7 @@ export function Confirm() {
             </div>
 
             <div className="mt-3 text-base kiosk-copy">
-              {colorLabel} printing • {formatSeconds(summary.printSeconds)} print time
+              {colorLabel} printing ï¿½ {formatSeconds(summary.printSeconds)} print time
             </div>
           </div>
 

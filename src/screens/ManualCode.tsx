@@ -52,9 +52,10 @@ export function ManualCode() {
 
     const result = await validateJobCode(code);
 
-    if (result.job) {
-      sessionStorage.setItem('arox_current_job', JSON.stringify(result.job));
-      navigate(`/confirm/${result.job.id}`, { state: { job: result.job } });
+    if (result.job && result.jobs?.length) {
+      sessionStorage.setItem('arox_pickup_order_code', result.job.pickup_code);
+      sessionStorage.setItem('arox_pickup_jobs', JSON.stringify(result.jobs));
+      navigate('/files');
     } else {
       setError(result.error || 'Invalid pickup code. Please try again.');
       setCode('');
