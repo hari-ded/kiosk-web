@@ -17,6 +17,8 @@ The repository does not currently contain a formal tagged release history, so th
 
 ### Changed
 
+- Multi-file pickup codes now require OTP verification once per pickup order; verified users can proceed to print each file individually.
+
 - Routed all browser `/api/*` traffic through the kiosk proxy, including health checks.
 - Kept support-call audio inside the active overlay and emit the call-end signal before local media cleanup.
 - Corrected the printer Socket.IO transport configuration.
@@ -30,6 +32,8 @@ The repository does not currently contain a formal tagged release history, so th
 - Internal release-flow documentation for the user-facing kiosk path and the backend approval sequence.
 
 ### Changed
+
+- Multi-file pickup codes now require OTP verification once per pickup order; verified users can proceed to print each file individually.
 
 - The kiosk release flow now follows the backend-managed notification path for OTP delivery.
 - OTP verification is treated as a strict backend-authenticated step before job release.
@@ -51,6 +55,8 @@ The repository does not currently contain a formal tagged release history, so th
 
 ### Changed
 
+- Multi-file pickup codes now require OTP verification once per pickup order; verified users can proceed to print each file individually.
+
 - Support requests now use the AROX support API contract directly instead of a local-only placeholder flow.
 - The support queue and live-call UI are now tied together through a shared call record and signaling layer.
 - Support session handling now keeps kiosk status and agent actions in sync during the call lifecycle.
@@ -71,6 +77,8 @@ The repository does not currently contain a formal tagged release history, so th
 
 ### Changed
 
+- Multi-file pickup codes now require OTP verification once per pickup order; verified users can proceed to print each file individually.
+
 - Support request records are now treated as live operational items instead of static alerts.
 - The support console now distinguishes open, connected, on-hold, and closed calls.
 
@@ -87,6 +95,8 @@ The repository does not currently contain a formal tagged release history, so th
 - Microphone permission handling for live audio sessions.
 
 ### Changed
+
+- Multi-file pickup codes now require OTP verification once per pickup order; verified users can proceed to print each file individually.
 
 - Support requests now carry more context from the kiosk to the agent side.
 - The kiosk support overlay now reflects queueing and connection states more clearly.
@@ -105,6 +115,8 @@ The repository does not currently contain a formal tagged release history, so th
 
 ### Changed
 
+- Multi-file pickup codes now require OTP verification once per pickup order; verified users can proceed to print each file individually.
+
 - Print confirmation now surfaces job metadata more clearly before release.
 - Low-supply conditions now route users into a service-oriented warning flow.
 
@@ -121,6 +133,8 @@ The repository does not currently contain a formal tagged release history, so th
 - Audio cues for important print states such as waiting and completion.
 
 ### Changed
+
+- Multi-file pickup codes now require OTP verification once per pickup order; verified users can proceed to print each file individually.
 
 - The kiosk flow was refined into a clearer start, confirm, print, and finish journey.
 
