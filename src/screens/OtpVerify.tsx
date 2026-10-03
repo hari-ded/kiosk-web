@@ -22,6 +22,7 @@ export function OtpVerify() {
   const navigate = useNavigate();
   const location = useLocation();
   const job = (location.state?.job as PrintJob | undefined) || readStoredJob();
+  const orderMode = Boolean(job && (location.state?.orderMode || sessionStorage.getItem('arox_order_otp_pending') === job.pickup_code));
 
   const [otp, setOtp] = useState('');
   const [loading, setLoading] = useState(false);
@@ -92,6 +93,13 @@ export function OtpVerify() {
         return;
       }
 
+      if (orderMode) {
+        sessionStorage.setItem('arox_verified_pickup_code', job.pickup_code);
+        sessionStorage.removeItem('arox_order_otp_pending');
+        navigate('/files', { replace: true });
+        return;
+      }
+
       const releaseSuccess = await releaseJob(job.pickup_code, job.id);
       if (releaseSuccess) {
         navigate(`/status/${job.id}`, { state: { job } });
@@ -158,7 +166,7 @@ export function OtpVerify() {
                 <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin kiosk-spinner-white"></div>
               ) : (
                 <>
-                  Verify & Print  <Sparkles size={24} />
+                  {orderMode ? 'Verify & Continue' : 'Verify & Print'}  <Sparkles size={24} />
                 </>
               )}
             </button>

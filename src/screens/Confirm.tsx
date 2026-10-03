@@ -110,7 +110,8 @@ export function Confirm() {
         return;
       }
 
-      if (job.email) {
+      const verifiedPickupCode = sessionStorage.getItem('arox_verified_pickup_code');
+      if (job.email && verifiedPickupCode !== job.pickup_code) {
         const success = await requestOtp(job.pickup_code, job.id);
         if (!success) {
           setError('Failed to send OTP. Please try again.');

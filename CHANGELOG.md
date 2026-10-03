@@ -7,6 +7,7 @@ The repository does not currently contain a formal tagged release history, so th
 ## [Unreleased]
 
 ### Added
+- Refresh shared pickup-code file statuses automatically while the kiosk order-files screen is visible.
 
 - Added multi-file pickup order listing with per-file print settings, individual OTP authorization, and one-file-at-a-time release.
 - Updated manual-code and QR pickup entry to open the order file list and return to it after each print.

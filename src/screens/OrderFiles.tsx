@@ -18,6 +18,7 @@ function statusLabel(status: string) {
   if (value === 'awaitingrelease') return 'Ready to print';
   if (['onkiosk', 'queued', 'printing', 'processing'].includes(value)) return 'Printing or in progress';
   if (['printed', 'done', 'completed'].includes(value)) return 'Printed';
+  if (value === 'failed') return 'Print failed. Request a retry in the AROX app history.';
   return status || 'Unavailable';
 }
 
@@ -28,11 +29,11 @@ export function OrderFiles() {
   const [error, setError] = useState<string | null>(null);
   const code = sessionStorage.getItem('arox_pickup_order_code') || jobs[0]?.pickup_code || '';
 
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (silent = false) => {
     if (!code) { setError('Pickup order was not found. Please enter your code again.'); return; }
-    setLoading(true);
+    if (!silent) setLoading(true);
     const result = await validateJobCode(code);
-    setLoading(false);
+    if (!silent) setLoading(false);
     if (result.jobs?.length) {
       setJobs(result.jobs);
       sessionStorage.setItem('arox_pickup_jobs', JSON.stringify(result.jobs));
@@ -44,6 +45,12 @@ export function OrderFiles() {
   }, [code]);
 
   useEffect(() => { void refresh(); }, [refresh]);
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      if (document.visibilityState === 'visible') void refresh(true);
+    }, 7000);
+    return () => window.clearInterval(timer);
+  }, [refresh]);
 
   const selectJob = (job: PrintJob) => {
     if (job.status.toLowerCase() !== 'awaitingrelease') return;
@@ -53,7 +60,9 @@ export function OrderFiles() {
   };
 
   const hasReady = jobs.some(job => job.status.toLowerCase() === 'awaitingrelease');
-  const hasActive = jobs.some(job => ['onkiosk', 'queued', 'printing', 'processing'].includes(job.status.toLowerCase()));
+  const hasActive = jobs.some(job => ['onkiosk', 'queued', 'printing', 'processing', 'downloading', 'validating', 'spooling'].includes(job.status.toLowerCase()));
+  const hasFailed = jobs.some(job => job.status.toLowerCase() === 'failed');
+  const allComplete = jobs.length > 0 && jobs.every(job => ['printed', 'done', 'completed'].includes(job.status.toLowerCase()));
 
   return (
     <Layout>
@@ -101,7 +110,13 @@ export function OrderFiles() {
               })}
             </div>
           )}
-          {!loading && jobs.length > 0 && !hasReady && !hasActive && (
+          {!loading && hasFailed && (
+            <div role="status" className="mt-6 rounded-2xl p-5 text-center kiosk-panel">
+              <p className="text-lg font-bold kiosk-heading">A file needs attention</p>
+              <p className="mt-2 kiosk-copy">Request its one-time retry from Print History in the AROX app, then refresh this screen and select that file.</p>
+            </div>
+          )}
+          {!loading && allComplete && (
             <div className="mt-6 rounded-2xl p-5 text-center kiosk-panel">
               <CheckCircle2 size={32} className="mx-auto mb-2" />
               <p className="text-xl font-bold kiosk-heading">All files in this order are complete.</p>
