@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import { Home } from './screens/Home';
 import { ManualCode } from './screens/ManualCode';
@@ -18,14 +18,31 @@ import { Health } from './screens/Health';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SupportOverlay } from './components/SupportOverlay';
 import { SupportContext } from './contexts/SupportContext';
+import { fetchKioskStatus } from './api';
+import { OutOfStation } from './screens/OutOfStation';
 
 export default function App() {
   const [showSupport, setShowSupport] = useState(false);
+  const [kioskInMaintenance, setKioskInMaintenance] = useState(false);
+
+  useEffect(() => {
+    let active = true;
+    const checkStatus = async () => {
+      const status = await fetchKioskStatus();
+      if (active && status) setKioskInMaintenance(status === 'maintenance');
+    };
+    void checkStatus();
+    const timer = window.setInterval(() => { void checkStatus(); }, 60_000);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+    };
+  }, []);
 
   return (
     <ErrorBoundary>
       <SupportContext.Provider value={() => setShowSupport(true)}>
-        <BrowserRouter>
+        {kioskInMaintenance ? <OutOfStation /> : <BrowserRouter>
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/code" element={<ManualCode />} />
@@ -38,8 +55,8 @@ export default function App() {
             <Route path="/agent" element={<AgentConsole />} />
             <Route path="/health" element={<Health />} />
           </Routes>
-        </BrowserRouter>
-        {showSupport && <SupportOverlay onClose={() => setShowSupport(false)} />}
+        </BrowserRouter>}
+        {showSupport && !kioskInMaintenance && <SupportOverlay onClose={() => setShowSupport(false)} />}
       </SupportContext.Provider>
     </ErrorBoundary>
   );

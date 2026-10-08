@@ -106,6 +106,20 @@ export async function validateJobCode(code: string): Promise<{ job?: PrintJob, j
     return { error: error instanceof Error ? error.message : 'Network error or server unavailable' };
   }
 }
+
+export async function fetchKioskStatus(): Promise<string | null> {
+  try {
+    const res = await fetch(`${API_URL}/kiosk/${encodeURIComponent(KIOSK_ID)}/status`, {
+      cache: 'no-store',
+      headers: buildHeaders(),
+    });
+    const data = await readJsonResponse<any>(res);
+    if (!res.ok || !data) return null;
+    return String(data.status || '').trim().toLowerCase() || null;
+  } catch {
+    return null;
+  }
+}
 export async function requestOtp(code: string, uploadId?: string): Promise<boolean> {
   const pickupCode = normalizePickupCode(code);
   const res = await fetch(`${API_URL}/job/${pickupCode}/request_release_otp`, {

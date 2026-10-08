@@ -64,8 +64,33 @@ export function OrderFiles() {
   const hasFailed = jobs.some(job => job.status.toLowerCase() === 'failed');
   const allComplete = jobs.length > 0 && jobs.every(job => ['printed', 'done', 'completed'].includes(job.status.toLowerCase()));
 
+  const returnHome = useCallback(() => {
+    sessionStorage.removeItem('arox_pickup_order_code');
+    sessionStorage.removeItem('arox_pickup_jobs');
+    sessionStorage.removeItem('arox_current_job');
+    navigate('/');
+  }, [navigate]);
+
+  useEffect(() => {
+    if (!allComplete) return;
+    const timer = window.setTimeout(returnHome, 5000);
+    return () => window.clearTimeout(timer);
+  }, [allComplete, returnHome]);
+
   return (
     <Layout>
+      {allComplete ? (
+        <div className="flex-1 flex items-center justify-center p-6">
+          <section role="status" className="w-full max-w-2xl rounded-3xl p-10 md:p-14 text-center kiosk-panel-strong">
+            <CheckCircle2 size={72} className="mx-auto mb-6 kiosk-text-emerald" />
+            <h1 className="text-4xl md:text-5xl font-extrabold kiosk-heading">All files are printed</h1>
+            <p className="mt-4 text-xl kiosk-copy">Thank you. Returning to the home screen shortly.</p>
+            <button type="button" onClick={returnHome} className="mt-8 h-16 px-10 rounded-xl inline-flex items-center justify-center gap-3 text-xl font-bold kiosk-primary-emerald">
+              <Home size={24} /> Go to Home
+            </button>
+          </section>
+        </div>
+      ) : (
       <div className="flex-1 flex flex-col max-w-5xl w-full mx-auto pb-4">
         <div className="flex items-center mb-6 relative">
           <button type="button" onClick={() => navigate('/')} className="absolute left-0 h-14 px-6 flex items-center gap-2 rounded-xl kiosk-muted-button">
@@ -116,15 +141,9 @@ export function OrderFiles() {
               <p className="mt-2 kiosk-copy">Request its one-time retry from Print History in the AROX app, then refresh this screen and select that file.</p>
             </div>
           )}
-          {!loading && allComplete && (
-            <div className="mt-6 rounded-2xl p-5 text-center kiosk-panel">
-              <CheckCircle2 size={32} className="mx-auto mb-2" />
-              <p className="text-xl font-bold kiosk-heading">All files in this order are complete.</p>
-              <button type="button" onClick={() => { sessionStorage.removeItem('arox_pickup_order_code'); sessionStorage.removeItem('arox_pickup_jobs'); sessionStorage.removeItem('arox_current_job'); navigate('/'); }} className="mt-4 h-14 px-6 rounded-xl inline-flex items-center gap-2 kiosk-primary-emerald"><Home size={20} /> Return Home</button>
-            </div>
-          )}
         </div>
       </div>
+      )}
     </Layout>
   );
 }
