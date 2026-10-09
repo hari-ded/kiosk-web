@@ -38,10 +38,12 @@ export function Confirm() {
   const navigate = useNavigate();
   const location = useLocation();
   const job = (location.state?.job as PrintJob | undefined) || readStoredJob();
+  const orderMode = Boolean(location.state?.orderMode);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const previousErrorRef = useRef<string | null>(null);
+  const orderActionStartedRef = useRef(false);
 
   useEffect(() => {
     if (!job) {
@@ -57,22 +59,8 @@ export function Confirm() {
     previousErrorRef.current = nextError;
   }, [error]);
 
-  if (!job) {
-    return (
-      <Layout>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin w-16 h-16 border-8 rounded-full kiosk-spinner-rose"></div>
-        </div>
-      </Layout>
-    );
-  }
-
-  const summary = summarizePrintJob(job);
-  const displayFilename = getDisplayFilename(job.filename);
-  const colorLabel = job.color ? 'Color' : 'Black & White';
-  const etaLabel = `~${formatSeconds(summary.totalWaitSeconds)}`;
-
   const handleInitialAction = async () => {
+    if (!job) return;
     setLoading(true);
     setError(null);
 
@@ -136,6 +124,52 @@ export function Confirm() {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    if (orderMode && job && !orderActionStartedRef.current) {
+      orderActionStartedRef.current = true;
+      void handleInitialAction();
+    }
+  }, [orderMode, job]);
+
+  if (!job) {
+    return (
+      <Layout>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-spin w-16 h-16 border-8 rounded-full kiosk-spinner-rose"></div>
+        </div>
+      </Layout>
+    );
+  }
+
+  const summary = summarizePrintJob(job);
+  const displayFilename = getDisplayFilename(job.filename);
+  const colorLabel = job.color ? 'Color' : 'Black & White';
+  const etaLabel = `~${formatSeconds(summary.totalWaitSeconds)}`;
+
+  if (orderMode) {
+    return (
+      <Layout disableInactivityWarning={loading}>
+        <div className="flex-1 flex flex-col items-center justify-center text-center px-6">
+          <div className="w-32 h-32 text-white rounded-full flex items-center justify-center mb-8 relative shadow-lg kiosk-circle-sky">
+            <div className="absolute inset-0 rounded-full border-8 animate-spin kiosk-ring-sky"></div>
+            <FileText size={48} className="relative z-10" />
+          </div>
+          <h2 className="text-4xl font-bold mb-4 kiosk-heading">
+            {loading ? 'Preparing your file...' : error ? 'Unable to start printing' : 'Preparing your file...'}
+          </h2>
+          <p className="text-2xl kiosk-copy">
+            {loading ? 'Please wait while we send your document to the printer.' : error || 'Please wait...'}
+          </p>
+          {!loading && error && (
+            <button type="button" onClick={() => void handleInitialAction()} className="mt-8 h-16 px-10 rounded-xl text-xl font-bold kiosk-primary-rose">
+              Try again
+            </button>
+          )}
+        </div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
