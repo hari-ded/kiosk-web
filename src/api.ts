@@ -120,34 +120,6 @@ export async function fetchKioskStatus(): Promise<string | null> {
     return null;
   }
 }
-export async function requestOtp(code: string, uploadId?: string): Promise<boolean> {
-  const pickupCode = normalizePickupCode(code);
-  const res = await fetch(`${API_URL}/job/${pickupCode}/request_release_otp`, {
-    method: 'POST',
-    cache: 'no-store',
-    headers: buildHeaders(),
-    body: JSON.stringify({ kiosk_id: KIOSK_ID, upload_id: uploadId })
-  });
-  if (!res.ok) return false;
-  const data = await readJsonResponse<any>(res);
-  if (!data) return false;
-  return data.success;
-}
-
-export async function verifyOtp(code: string, otp: string, uploadId?: string): Promise<boolean> {
-  const pickupCode = normalizePickupCode(code);
-  const res = await fetch(`${API_URL}/job/${pickupCode}/verify_release_otp`, {
-    method: 'POST',
-    cache: 'no-store',
-    headers: buildHeaders(),
-    body: JSON.stringify({ kiosk_id: KIOSK_ID, otp, upload_id: uploadId })
-  });
-  if (!res.ok) return false;
-  const data = await readJsonResponse<any>(res);
-  if (!data) return false;
-  return data.success;
-}
-
 export async function releaseJob(code: string, uploadId?: string): Promise<boolean> {
   const pickupCode = normalizePickupCode(code);
   const res = await fetch(`${API_URL}/release_job`, {

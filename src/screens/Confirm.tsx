@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { fetchConsumables, requestOtp, releaseJob, sendAlert } from '../api';
+import { fetchConsumables, releaseJob, sendAlert } from '../api';
 import { PrintJob } from '../types';
 import { Layout } from '../components/Layout';
-import { ArrowLeft, ArrowUpDown, Clock3, Copy, FileText, Hash, Layers3, LayoutGrid, Lock, RotateCw, ShieldCheck, Sparkles } from 'lucide-react';
+import { ArrowLeft, ArrowUpDown, Clock3, Copy, FileText, Hash, Layers3, LayoutGrid, RotateCw, ShieldCheck, Sparkles } from 'lucide-react';
 import { playSound } from '../utils/audio';
 import { formatSeconds, getDisplayFilename, summarizePrintJob } from '../utils/printJob';
 
@@ -95,20 +95,6 @@ export function Confirm() {
           },
           replace: true
         });
-        return;
-      }
-
-      const verifiedPickupCode = sessionStorage.getItem('arox_verified_pickup_code');
-      if (job.email && verifiedPickupCode !== job.pickup_code) {
-        const success = await requestOtp(job.pickup_code, job.id);
-        if (!success) {
-          setError('Failed to send OTP. Please try again.');
-          setLoading(false);
-          return;
-        }
-
-        navigate(`/otp/${job.id}`, { state: { job } });
-        setLoading(false);
         return;
       }
 
@@ -231,8 +217,8 @@ export function Confirm() {
               <div className="w-8 h-8 border-4 border-white border-t-transparent rounded-full animate-spin kiosk-spinner-white"></div>
             ) : (
               <>
-                {job.email ? <Lock size={28} /> : <Sparkles size={28} />}
-                {job.email ? 'Confirm Details & Send Code' : 'Confirm Details & Print'}
+                <Sparkles size={28} />
+                Confirm Details & Print
               </>
             )}
           </button>

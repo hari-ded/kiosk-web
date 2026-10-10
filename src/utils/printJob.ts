@@ -5,7 +5,8 @@ const DEFAULT_DUPLEX = false;
 const DEFAULT_ORIENTATION = 'Portrait';
 const FIXED_SPOOL_DELAY_SECONDS = 2.5;
 const SIMPLEX_SECONDS_PER_SHEET = 0.5;
-const DUPLEX_SECONDS_PER_SHEET = 1;
+// Duplex sheets take about 3–4 seconds to print both sides on the kiosk.
+const DUPLEX_SECONDS_PER_SHEET = 3.5;
 
 export interface PrintJobSummary {
   orientation: string;
@@ -23,7 +24,8 @@ export function summarizePrintJob(job: PrintJob): PrintJobSummary {
   const duplex = job.duplex ?? DEFAULT_DUPLEX;
   const orientation = job.orientation || DEFAULT_ORIENTATION;
 
-  const sheetsPerCopy = Math.max(1, Math.ceil(job.pages / pagesPerSheet));
+  const pagesPerPhysicalSheet = pagesPerSheet * (duplex ? 2 : 1);
+  const sheetsPerCopy = Math.max(1, Math.ceil(job.pages / pagesPerPhysicalSheet));
   const secondsPerSheet = duplex ? DUPLEX_SECONDS_PER_SHEET : SIMPLEX_SECONDS_PER_SHEET;
   const totalSheets = sheetsPerCopy * copies;
   const printSeconds = totalSheets * secondsPerSheet;

@@ -10,7 +10,6 @@ import { ManualCode } from './screens/ManualCode';
 import { OrderFiles } from './screens/OrderFiles';
 import { QrScan } from './screens/QrScan';
 import { Confirm } from './screens/Confirm';
-import { OtpVerify } from './screens/OtpVerify';
 import { Status } from './screens/Status';
 import { LowSupply } from './screens/LowSupply';
 import { AgentConsole } from './screens/AgentConsole';
@@ -49,7 +48,6 @@ export default function App() {
             <Route path="/files" element={<OrderFiles />} />
             <Route path="/scan" element={<QrScan />} />
             <Route path="/confirm/:jobId" element={<Confirm />} />
-            <Route path="/otp/:jobId" element={<OtpVerify />} />
             <Route path="/status/:jobId" element={<Status />} />
             <Route path="/low-supply" element={<LowSupply />} />
             <Route path="/agent" element={<AgentConsole />} />

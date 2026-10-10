@@ -6,6 +6,7 @@ import { Layout } from '../components/Layout';
 import { Printer, CheckCircle2, XCircle, Home } from 'lucide-react';
 import { playSound } from '../utils/audio';
 import { createPrinterSocket, type PrinterSocket } from '../utils/printerTransport';
+import { summarizePrintJob } from '../utils/printJob';
 
 const SUCCESS_STATES = ['printed', 'completed', 'complete', 'success', 'done', 'finished'];
 const FAILURE_STATES = ['failed', 'failure', 'error', 'errored', 'aborted', 'cancelled', 'canceled'];
@@ -76,6 +77,8 @@ export function Status() {
     }
 
     mountedRef.current = true;
+    const minimumPrintDurationMs = summarizePrintJob(job).totalWaitSeconds * 1000;
+    const statusPageStartedAt = Date.now();
 
     const clearTimers = () => {
       if (pollTimeoutRef.current) {
@@ -123,15 +126,17 @@ export function Status() {
         progressIntervalRef.current = null;
       }
 
-      // The backend/engine is authoritative: do not use a local ETA to decide
-      // when a print is complete.
-      setProgress(100);
-      setStatus('completed');
-      completionReturnRef.current = window.setTimeout(() => {
-        if (mountedRef.current) {
-          returnHome();
-        }
-      }, 5000);
+      // Wait for the expected physical print duration even if the backend
+      // reports completion as soon as the job is queued to the printer.
+      const remainingPrintTime = Math.max(0, minimumPrintDurationMs - (Date.now() - statusPageStartedAt));
+      completionDelayRef.current = window.setTimeout(() => {
+        if (!mountedRef.current) return;
+        setProgress(100);
+        setStatus('completed');
+        completionReturnRef.current = window.setTimeout(() => {
+          if (mountedRef.current) returnHome();
+        }, 5000);
+      }, remainingPrintTime);
     };
 
     const applyBackendStatus = (rawStatus: unknown) => {

@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Html5Qrcode } from 'html5-qrcode';
-import { requestOtp, validateJobCode } from '../api';
+import { validateJobCode } from '../api';
 import { Layout } from '../components/Layout';
 import { ArrowLeft } from 'lucide-react';
 import { playSound } from '../utils/audio';
@@ -57,22 +57,7 @@ export function QrScan() {
             if (result.job && result.jobs?.length) {
               sessionStorage.setItem('arox_pickup_order_code', result.job.pickup_code);
               sessionStorage.setItem('arox_pickup_jobs', JSON.stringify(result.jobs));
-              sessionStorage.removeItem('arox_verified_pickup_code');
-              const otpJob = result.jobs.length > 1 ? result.jobs.find(job => job.email) : undefined;
-              if (otpJob) {
-                const sent = await requestOtp(otpJob.pickup_code, otpJob.id);
-                if (!sent) {
-                  setError('Failed to send OTP. Please try again.');
-                  validatingRef.current = false;
-                  scanner.resume();
-                  return;
-                }
-                sessionStorage.setItem('arox_current_job', JSON.stringify(otpJob));
-                sessionStorage.setItem('arox_order_otp_pending', otpJob.pickup_code);
-                scanner.stop().then(() => navigate('/otp/' + otpJob.id, { state: { job: otpJob, orderMode: true } })).catch(() => navigate('/otp/' + otpJob.id, { state: { job: otpJob, orderMode: true } }));
-              } else {
-                scanner.stop().then(() => navigate('/files')).catch(() => navigate('/files'));
-              }
+              scanner.stop().then(() => navigate('/files')).catch(() => navigate('/files'));
             } else {
               setError(result.error || 'Invalid QR code. Please try again.');
               setTimeout(() => {

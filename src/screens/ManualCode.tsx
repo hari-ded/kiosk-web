@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { requestOtp, validateJobCode } from '../api';
+import { validateJobCode } from '../api';
 import { Layout } from '../components/Layout';
 import { ArrowLeft, Delete, Sparkles } from 'lucide-react';
 import { playSound } from '../utils/audio';
@@ -55,20 +55,6 @@ export function ManualCode() {
     if (result.job && result.jobs?.length) {
       sessionStorage.setItem('arox_pickup_order_code', result.job.pickup_code);
       sessionStorage.setItem('arox_pickup_jobs', JSON.stringify(result.jobs));
-      sessionStorage.removeItem('arox_verified_pickup_code');
-      const otpJob = result.jobs.length > 1 ? result.jobs.find(job => job.email) : undefined;
-      if (otpJob) {
-        const sent = await requestOtp(otpJob.pickup_code, otpJob.id);
-        if (!sent) {
-          setError('Failed to send OTP. Please try again.');
-          setValidating(false);
-          return;
-        }
-        sessionStorage.setItem('arox_current_job', JSON.stringify(otpJob));
-        sessionStorage.setItem('arox_order_otp_pending', otpJob.pickup_code);
-        navigate('/otp/' + otpJob.id, { state: { job: otpJob, orderMode: true } });
-        return;
-      }
       navigate('/files');
     } else {
       setError(result.error || 'Invalid pickup code. Please try again.');
@@ -108,7 +94,7 @@ export function ManualCode() {
               {error ? (
                 <span className="text-xl font-bold kiosk-text-red">{error}</span>
               ) : (
-                <span className="text-xl kiosk-copy">Enter the 6-digit code from your email</span>
+                <span className="text-xl kiosk-copy">Enter the 6-digit pickup code from your email</span>
               )}
             </div>
 
