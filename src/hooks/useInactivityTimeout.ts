@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
-const INACTIVITY_TIMEOUT_MS = 30000;
+const INACTIVITY_TIMEOUT_MS = 45000;
 const WARNING_TIMEOUT_SECONDS = 10;
 
 /**
@@ -9,7 +9,7 @@ const WARNING_TIMEOUT_SECONDS = 10;
  * current screen. Active print jobs must remain visible until the backend
  * reports their next state.
  */
-export function useInactivityTimeout(enabled = true) {
+export function useInactivityTimeout(enabled = true, showWarning = true) {
   const navigate = useNavigate();
   const location = useLocation();
   const [warningVisible, setWarningVisible] = useState(false);
@@ -53,6 +53,11 @@ export function useInactivityTimeout(enabled = true) {
   const startIdleTimer = useCallback(() => {
     clearIdleTimer();
     idleTimerRef.current = window.setTimeout(() => {
+      if (!showWarning) {
+        goHome();
+        return;
+      }
+
       warningVisibleRef.current = true;
       setWarningVisible(true);
       setWarningSecondsRemaining(WARNING_TIMEOUT_SECONDS);
@@ -66,7 +71,7 @@ export function useInactivityTimeout(enabled = true) {
         setWarningSecondsRemaining((current) => Math.max(0, current - 1));
       }, 1000);
     }, INACTIVITY_TIMEOUT_MS);
-  }, [clearIdleTimer, clearWarningTimers, goHome]);
+  }, [clearIdleTimer, clearWarningTimers, goHome, showWarning]);
 
   const extendSession = useCallback(() => {
     warningVisibleRef.current = false;

@@ -41,19 +41,21 @@ export default function App() {
   return (
     <ErrorBoundary>
       <SupportContext.Provider value={() => setShowSupport(true)}>
-        {kioskInMaintenance ? <OutOfStation /> : <BrowserRouter>
-          <Routes>
-            <Route path="/" element={<Home />} />
-            <Route path="/code" element={<ManualCode />} />
-            <Route path="/files" element={<OrderFiles />} />
-            <Route path="/scan" element={<QrScan />} />
-            <Route path="/confirm/:jobId" element={<Confirm />} />
-            <Route path="/status/:jobId" element={<Status />} />
-            <Route path="/low-supply" element={<LowSupply />} />
-            <Route path="/agent" element={<AgentConsole />} />
-            <Route path="/health" element={<Health />} />
-          </Routes>
-        </BrowserRouter>}
+        <BrowserRouter>
+          {kioskInMaintenance ? <OutOfStation /> : (
+            <Routes>
+              <Route path="/" element={<Home />} />
+              <Route path="/code" element={<ManualCode />} />
+              <Route path="/files" element={<OrderFiles />} />
+              <Route path="/scan" element={<QrScan />} />
+              <Route path="/confirm/:jobId" element={<Confirm />} />
+              <Route path="/status/:jobId" element={<Status />} />
+              <Route path="/low-supply" element={<LowSupply />} />
+              <Route path="/agent" element={<AgentConsole />} />
+              <Route path="/health" element={<Health />} />
+            </Routes>
+          )}
+        </BrowserRouter>
         {showSupport && !kioskInMaintenance && <SupportOverlay onClose={() => setShowSupport(false)} />}
       </SupportContext.Provider>
     </ErrorBoundary>

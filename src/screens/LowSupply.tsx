@@ -41,7 +41,7 @@ export function LowSupply() {
 
   if (loading || !consumables) {
     return (
-      <Layout>
+      <Layout hideInactivityWarning>
         <div className="flex-1 flex items-center justify-center">
           <div className="animate-spin w-16 h-16 border-8 rounded-full kiosk-spinner-sky"></div>
         </div>
@@ -91,7 +91,7 @@ export function LowSupply() {
   };
 
   return (
-    <Layout>
+    <Layout hideInactivityWarning>
       <div className="flex-1 flex flex-col items-center justify-center max-w-4xl w-full mx-auto pb-16">
         
         <div className="w-32 h-32 rounded-full flex items-center justify-center mb-8 kiosk-circle-amber">

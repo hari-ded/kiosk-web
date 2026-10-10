@@ -9,15 +9,16 @@ import collegeLogo from '../../assets/kvell.png';
 interface LayoutProps {
   children: ReactNode;
   disableInactivityWarning?: boolean;
+  hideInactivityWarning?: boolean;
 }
 
 // Adjust these sizes to make the logos bigger or smaller.
 const AROX_LOGO_SIZE = 'h-[3.00rem] md:h-[3.00rem] lg:h-[4.00rem]';
 const COLLEGE_LOGO_SIZE = 'h-[5.00rem] md:h-[5.00rem] lg:h-[6.00rem]';
 
-export function Layout({ children, disableInactivityWarning = false }: LayoutProps) {
+export function Layout({ children, disableInactivityWarning = false, hideInactivityWarning = false }: LayoutProps) {
   // Pause the timer itself, not just the warning overlay, while a job is live.
-  const inactivity = useInactivityTimeout(!disableInactivityWarning);
+  const inactivity = useInactivityTimeout(!disableInactivityWarning, !hideInactivityWarning);
   const location = useLocation();
   const onHelp = useSupport();
 
@@ -54,7 +55,7 @@ export function Layout({ children, disableInactivityWarning = false }: LayoutPro
         </button>
       )}
 
-      {!disableInactivityWarning && inactivity.warningVisible && (
+      {!disableInactivityWarning && !hideInactivityWarning && inactivity.warningVisible && (
         <div className="absolute inset-0 z-50 flex items-center justify-center p-6 kiosk-overlay kiosk-blur">
           <div className="w-full max-w-2xl rounded-3xl border p-8 md:p-10 text-center flex flex-col items-center kiosk-panel-strong">
             <div className="w-20 h-20 mx-auto mb-6 rounded-full text-white flex items-center justify-center kiosk-circle-amber">
