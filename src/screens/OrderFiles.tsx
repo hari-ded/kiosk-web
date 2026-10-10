@@ -91,15 +91,15 @@ export function OrderFiles() {
           </section>
         </div>
       ) : (
-      <div className="flex-1 flex flex-col max-w-5xl w-full mx-auto pb-4">
-        <div className="flex items-center mb-6 relative">
+      <div className="flex-1 min-h-0 flex flex-col max-w-5xl w-full mx-auto pb-4">
+        <div className="flex items-center mb-6 relative shrink-0">
           <button type="button" onClick={() => navigate('/')} className="absolute left-0 h-14 px-6 flex items-center gap-2 rounded-xl kiosk-muted-button">
             <ArrowLeft size={22} /> Home
           </button>
           <h2 className="text-3xl font-bold w-full text-center kiosk-heading">Your print files</h2>
         </div>
-        <div className="w-full rounded-3xl p-5 md:p-7 kiosk-panel-strong">
-          <div className="flex items-center justify-between gap-4 mb-5">
+        <div className="w-full flex-1 min-h-0 rounded-3xl p-5 md:p-7 flex flex-col kiosk-panel-strong">
+          <div className="flex items-center justify-between gap-4 mb-5 shrink-0">
             <div>
               <p className="text-sm uppercase tracking-widest kiosk-copy">Pickup code</p>
               <p className="text-2xl font-bold kiosk-heading">{code}</p>
@@ -108,13 +108,13 @@ export function OrderFiles() {
               <RefreshCw size={18} className={loading ? 'animate-spin' : ''} /> Refresh
             </button>
           </div>
-          {error && <p role="alert" className="mb-4 text-lg font-semibold kiosk-text-red">{error}</p>}
+          {error && <p role="alert" className="mb-4 text-lg font-semibold kiosk-text-red shrink-0">{error}</p>}
           {loading && jobs.length === 0 ? (
             <div className="py-12 text-center kiosk-copy">Loading order files…</div>
           ) : jobs.length === 0 ? (
             <div className="py-10 text-center kiosk-copy">Enter your pickup code to load its files.</div>
           ) : (
-            <div className="space-y-3">
+            <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain touch-pan-y space-y-3 pr-1">
               {jobs.map(job => {
                 const ready = job.status.toLowerCase() === 'awaitingrelease';
                 const active = ['onkiosk', 'queued', 'printing', 'processing'].includes(job.status.toLowerCase());
@@ -136,7 +136,7 @@ export function OrderFiles() {
             </div>
           )}
           {!loading && hasFailed && (
-            <div role="status" className="mt-6 rounded-2xl p-5 text-center kiosk-panel">
+            <div role="status" className="mt-6 shrink-0 rounded-2xl p-5 text-center kiosk-panel">
               <p className="text-lg font-bold kiosk-heading">A file needs attention</p>
               <p className="mt-2 kiosk-copy">Request its one-time retry from Print History in the AROX app, then refresh this screen and select that file.</p>
             </div>
