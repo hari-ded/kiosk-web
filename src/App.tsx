@@ -31,7 +31,7 @@ export default function App() {
       if (active && status) setKioskInMaintenance(status === 'maintenance');
     };
     void checkStatus();
-    const timer = window.setInterval(() => { void checkStatus(); }, 60_000);
+    const timer = window.setInterval(() => { void checkStatus(); }, 5_000);
     return () => {
       active = false;
       window.clearInterval(timer);
