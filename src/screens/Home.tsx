@@ -2,7 +2,7 @@
 import { useLocation, useNavigate } from 'react-router-dom';
 import { fetchConsumables } from '../api';
 import { Layout } from '../components/Layout';
-import { QrCode, Keyboard } from 'lucide-react';
+import { Keyboard } from 'lucide-react';
 import { playSound } from '../utils/audio';
 
 export function Home() {
@@ -81,17 +81,6 @@ export function Home() {
         </h3>
 
         <div className="flex flex-col md:flex-row gap-6 md:gap-10 w-full max-w-4xl">
-          <button
-            type="button"
-            onClick={() => navigate('/scan')}
-            className="flex-1 h-56 md:h-64 border-2 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-5 md:gap-6 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-panel kiosk-soft-sky"
-          >
-            <div className="w-20 h-20 md:w-24 md:h-24 text-white rounded-full flex items-center justify-center shadow-lg kiosk-circle-sky">
-              <QrCode size={44} strokeWidth={2.5} />
-            </div>
-            <span className="text-xl md:text-2xl font-bold kiosk-text-sky">Scan QR Code</span>
-          </button>
-
           <button
             type="button"
             onClick={() => navigate('/code')}
