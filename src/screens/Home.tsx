@@ -4,6 +4,7 @@ import { fetchConsumables } from '../api';
 import { Layout } from '../components/Layout';
 import { Keyboard } from 'lucide-react';
 import { playSound } from '../utils/audio';
+import appDownloadQr from '../../assets/qr-code.png';
 
 export function Home() {
   const navigate = useNavigate();
@@ -80,11 +81,29 @@ export function Home() {
           How would you like to retrieve your print job?
         </h3>
 
-        <div className="flex flex-col md:flex-row gap-6 md:gap-10 w-full max-w-4xl">
+        <div className="flex flex-col md:flex-row gap-6 md:gap-8 w-full max-w-5xl items-stretch">
+          <section
+            aria-labelledby="download-app-heading"
+            className="flex-1 min-h-56 md:min-h-64 rounded-2xl border shadow-sm flex flex-row items-center justify-center gap-5 md:gap-7 p-5 md:p-7 kiosk-panel"
+          >
+            <div className="text-left">
+              <h4 id="download-app-heading" className="text-xl md:text-2xl font-bold kiosk-heading">
+                Download our app
+              </h4>
+              <p className="mt-2 text-base md:text-lg kiosk-copy">
+                Scan to download the Arox app and print.
+              </p>
+            </div>
+            <img
+              src={appDownloadQr}
+              alt="QR code to download the Arox app"
+              className="w-28 h-28 md:w-36 md:h-36 object-contain rounded-xl bg-white p-2 shadow-sm shrink-0"
+            />
+          </section>
           <button
             type="button"
             onClick={() => navigate('/code')}
-            className="flex-1 h-56 md:h-64 border-2 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-5 md:gap-6 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-panel kiosk-soft-rose"
+            className="flex-1 min-h-56 md:min-h-64 border-2 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-5 md:gap-6 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-panel kiosk-soft-rose"
           >
             <div className="w-20 h-20 md:w-24 md:h-24 text-white rounded-full flex items-center justify-center shadow-lg kiosk-circle-rose">
               <Keyboard size={44} strokeWidth={2.5} />
