@@ -356,7 +356,8 @@ async function startServer() {
 
   if (BACKEND_SERVICE_TOKEN) {
     app.post('/api/kiosks/:kiosk_id/heartbeat', async (req, res) => {
-      const backendRes = await proxyBackend(`/api/kiosks/${encodeURIComponent(req.params.kiosk_id)}/heartbeat`, {
+      // BACKEND_API_URL already ends in /api, so proxy paths are relative to it.
+      const backendRes = await proxyBackend(`/kiosks/${encodeURIComponent(req.params.kiosk_id)}/heartbeat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(req.body || {}),
