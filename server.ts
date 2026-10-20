@@ -355,6 +355,18 @@ async function startServer() {
   });
 
   if (BACKEND_SERVICE_TOKEN) {
+    app.post('/api/kiosks/:kiosk_id/heartbeat', async (req, res) => {
+      const backendRes = await proxyBackend(`/api/kiosks/${encodeURIComponent(req.params.kiosk_id)}/heartbeat`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body || {}),
+      });
+      if (!backendRes) {
+        return res.status(503).json({ success: false, error: 'Backend proxy not configured' });
+      }
+      return sendBackendResponse(res, backendRes);
+    });
+
     app.get('/api/job/:code', async (req, res) => {
       const kioskId = String(req.query.kiosk_id || '').trim();
       const query = kioskId ? `?kiosk_id=${encodeURIComponent(kioskId)}` : '';

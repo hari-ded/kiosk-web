@@ -17,7 +17,7 @@ import { Health } from './screens/Health';
 import { ErrorBoundary } from './components/ErrorBoundary';
 import { SupportOverlay } from './components/SupportOverlay';
 import { SupportContext } from './contexts/SupportContext';
-import { fetchKioskStatus } from './api';
+import { fetchKioskStatus, sendKioskHeartbeat } from './api';
 import { OutOfStation } from './screens/OutOfStation';
 
 export default function App() {
@@ -35,6 +35,26 @@ export default function App() {
     return () => {
       active = false;
       window.clearInterval(timer);
+    };
+  }, []);
+
+  useEffect(() => {
+    let active = true;
+    const heartbeat = () => {
+      if (document.visibilityState === 'visible') {
+        void sendKioskHeartbeat().catch(() => {
+          // A failed heartbeat naturally becomes stale in the admin monitor.
+        });
+      }
+    };
+    heartbeat();
+    const timer = window.setInterval(heartbeat, 30_000);
+    const onVisibilityChange = () => { if (active) heartbeat(); };
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
     };
   }, []);
 

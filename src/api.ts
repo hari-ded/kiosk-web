@@ -120,6 +120,16 @@ export async function fetchKioskStatus(): Promise<string | null> {
     return null;
   }
 }
+
+export async function sendKioskHeartbeat(): Promise<void> {
+  const res = await fetch(`${API_URL}/kiosks/${encodeURIComponent(KIOSK_ID)}/heartbeat`, {
+    method: 'POST',
+    cache: 'no-store',
+    headers: buildHeaders(),
+    body: JSON.stringify({ source: 'web_kiosk' }),
+  });
+  if (!res.ok) throw new Error('Failed to send kiosk heartbeat');
+}
 export async function releaseJob(code: string, uploadId?: string): Promise<boolean> {
   const pickupCode = normalizePickupCode(code);
   const res = await fetch(`${API_URL}/release_job`, {
