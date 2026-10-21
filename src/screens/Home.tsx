@@ -88,10 +88,10 @@ export function Home() {
           >
             <div className="text-left">
               <h4 id="download-app-heading" className="text-xl md:text-2xl font-bold kiosk-heading">
-                Download our app
+                Scan to Print
               </h4>
               <p className="mt-2 text-base md:text-lg kiosk-copy">
-                Scan to download the Arox app and print.
+                Scan the QR-Code, Upload and Pay from anywhere!
               </p>
             </div>
             <img
