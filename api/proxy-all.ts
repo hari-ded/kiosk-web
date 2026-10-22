@@ -5,6 +5,13 @@ const HOP_BY_HOP_HEADERS = new Set([
   'host',
   'transfer-encoding',
   'upgrade',
+  // Kiosk upstream auth is server-side; ignore browser identity headers.
+  'cookie',
+  'authorization',
+  'x-admin-token',
+  'x-auth-token',
+  'x-access-token',
+  'x-arox-service-token',
 ]);
 
 function normalizeBackendApiUrl(url: string) {
