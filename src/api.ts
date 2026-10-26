@@ -85,20 +85,23 @@ export async function validateJobCode(code: string): Promise<{ job?: PrintJob, j
     // `files`/`uploads` over time. Preserve the whole group so the kiosk does
     // not mistake the first file for the complete order.
     const payload = data.data && typeof data.data === 'object' ? data.data : data;
-    // Some deployments wrap the single-job fields in `data` but keep the
-    // grouped list at the response root. Check both levels before falling
-    // back to the legacy single-file response.
-    const groupedJobs = [
-      data.jobs, data.files, data.uploads,
-      payload.jobs, payload.files, payload.uploads,
-    ].find(Array.isArray);
-    const rawJobs = groupedJobs || [payload.job || data.job || payload];
-    const jobs: PrintJob[] = rawJobs.map((raw: any) => {
+    // The backend returns both a legacy single-job record and a grouped jobs
+    // array. Deployments may wrap either part in `data`, so collect every
+    // grouped array and the legacy record, then deduplicate by upload ID.
+    const rawJobs = [data, payload].flatMap((source: any) => [
+      ...(Array.isArray(source.jobs) ? source.jobs : []),
+      ...(Array.isArray(source.files) ? source.files : []),
+      ...(Array.isArray(source.uploads) ? source.uploads : []),
+      ...(source.job && typeof source.job === 'object' ? [source.job] : []),
+      ...((source.upload_id ?? source.id) !== undefined ? [source] : []),
+    ]);
+    const jobsById = new Map<string, PrintJob>();
+    rawJobs.forEach((raw: any) => {
       const uploadId = raw.upload_id ?? raw.id;
       if (uploadId === undefined || uploadId === null || String(uploadId).trim() === '') {
-        throw new Error('Server returned a file without an ID');
+        return;
       }
-      return {
+      jobsById.set(String(uploadId), {
         id: String(uploadId), filename: raw.filename || ('Job ' + code),
         pages: Number(raw.pages) || 1, copies: Number(raw.copies) || 1,
         color: Boolean(raw.color), orientation: raw.orientation || raw.print_orientation || 'Portrait',
@@ -109,8 +112,10 @@ export async function validateJobCode(code: string): Promise<{ job?: PrintJob, j
         status: raw.status || 'unknown', pickup_code: raw.pickup_code || pickupCode,
         estimated_time_seconds: Number(raw.estimated_time_seconds) || 0,
         email: raw.email || null,
-      };
+      });
     });
+    const jobs = Array.from(jobsById.values());
+    if (jobs.length === 0) return { error: 'Server returned a file without an ID' };
     const job = jobs.find(item => item.status.toLowerCase() === 'awaitingrelease') || jobs[0];
     return { job, jobs };
   } catch (error) {
