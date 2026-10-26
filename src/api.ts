@@ -85,8 +85,14 @@ export async function validateJobCode(code: string): Promise<{ job?: PrintJob, j
     // `files`/`uploads` over time. Preserve the whole group so the kiosk does
     // not mistake the first file for the complete order.
     const payload = data.data && typeof data.data === 'object' ? data.data : data;
-    const groupedJobs = [payload.jobs, payload.files, payload.uploads].find(Array.isArray);
-    const rawJobs = groupedJobs || [payload.job || payload];
+    // Some deployments wrap the single-job fields in `data` but keep the
+    // grouped list at the response root. Check both levels before falling
+    // back to the legacy single-file response.
+    const groupedJobs = [
+      data.jobs, data.files, data.uploads,
+      payload.jobs, payload.files, payload.uploads,
+    ].find(Array.isArray);
+    const rawJobs = groupedJobs || [payload.job || data.job || payload];
     const jobs: PrintJob[] = rawJobs.map((raw: any) => {
       const uploadId = raw.upload_id ?? raw.id;
       if (uploadId === undefined || uploadId === null || String(uploadId).trim() === '') {
