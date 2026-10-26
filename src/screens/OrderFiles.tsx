@@ -35,8 +35,17 @@ export function OrderFiles() {
     const result = await validateJobCode(code);
     if (!silent) setLoading(false);
     if (result.jobs?.length) {
-      setJobs(result.jobs);
-      sessionStorage.setItem('arox_pickup_jobs', JSON.stringify(result.jobs));
+      // Some backend responses temporarily contain only the current file
+      // after it has been released. Keep files already discovered for this
+      // pickup code so one status response cannot hide the rest of the order
+      // or trigger the order-wide completion screen early.
+      setJobs(currentJobs => {
+        const merged = new Map(currentJobs.map(job => [job.id, job]));
+        result.jobs!.forEach(job => merged.set(job.id, job));
+        const nextJobs = Array.from(merged.values());
+        sessionStorage.setItem('arox_pickup_jobs', JSON.stringify(nextJobs));
+        return nextJobs;
+      });
       sessionStorage.setItem('arox_pickup_order_code', code);
       setError(null);
     } else {

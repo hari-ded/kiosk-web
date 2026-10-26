@@ -81,7 +81,12 @@ export async function validateJobCode(code: string): Promise<{ job?: PrintJob, j
     const data = await readJsonResponse<any>(res);
     if (!data) return { error: 'Server returned an invalid response' };
     if (!res.ok || data.success === false) return { error: data.error || data.message || 'Invalid pickup code' };
-    const rawJobs = Array.isArray(data.jobs) ? data.jobs : [data];
+    // The backend has returned grouped pickup orders under both `jobs` and
+    // `files`/`uploads` over time. Preserve the whole group so the kiosk does
+    // not mistake the first file for the complete order.
+    const payload = data.data && typeof data.data === 'object' ? data.data : data;
+    const groupedJobs = [payload.jobs, payload.files, payload.uploads].find(Array.isArray);
+    const rawJobs = groupedJobs || [payload.job || payload];
     const jobs: PrintJob[] = rawJobs.map((raw: any) => {
       const uploadId = raw.upload_id ?? raw.id;
       if (uploadId === undefined || uploadId === null || String(uploadId).trim() === '') {
