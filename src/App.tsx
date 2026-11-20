@@ -31,7 +31,9 @@ export default function App() {
       if (active && status) setKioskInMaintenance(status === 'maintenance');
     };
     void checkStatus();
-    const timer = window.setInterval(() => { void checkStatus(); }, 5_000);
+    // Maintenance mode is rare and not urgent; a slow poll keeps the
+    // per-request-billed backend from running all day for an idle kiosk.
+    const timer = window.setInterval(() => { void checkStatus(); }, 30_000);
     return () => {
       active = false;
       window.clearInterval(timer);
