@@ -4,11 +4,11 @@ const DEFAULT_PAGES_PER_SHEET = 1;
 const DEFAULT_DUPLEX = false;
 const DEFAULT_ORIENTATION = 'Portrait';
 // The engine reports "printed" as soon as the file reaches the printer, so the
-// printing screen is paced to the real printer instead: a 7s warm-up, then 3s
-// per single-sided page or 10s per double-sided sheet (two pages).
+// printing screen is paced to the real printer instead: a 7s warm-up, then 1.5s
+// per single-sided page or 5s per double-sided sheet (two pages).
 const FIXED_SPOOL_DELAY_SECONDS = 7;
-const SIMPLEX_SECONDS_PER_SHEET = 3;
-const DUPLEX_SECONDS_PER_SHEET = 10;
+const SIMPLEX_SECONDS_PER_SHEET = 1.5;
+const DUPLEX_SECONDS_PER_SHEET = 5;
 
 export interface PrintJobSummary {
   orientation: string;
