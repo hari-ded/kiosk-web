@@ -32,6 +32,7 @@ export function Status() {
 
   const [status, setStatus] = useState<'processing' | 'printing' | 'completed' | 'failed'>('processing');
   const [progress, setProgress] = useState(0);
+  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
 
   const mountedRef = useRef(true);
   const statusRef = useRef(status);
@@ -45,6 +46,7 @@ export function Status() {
   const realtimeConnectedRef = useRef(false);
   const jobRoomJoinedRef = useRef(false);
   const socketRef = useRef<PrinterSocket | null>(null);
+  const printingStartedAtRef = useRef<number | null>(null);
 
   useEffect(() => {
     statusRef.current = status;
@@ -77,8 +79,18 @@ export function Status() {
     }
 
     mountedRef.current = true;
-    const minimumPrintDurationMs = summarizePrintJob(job).totalWaitSeconds * 1000;
-    const statusPageStartedAt = Date.now();
+    // The engine marks the job printed once the file is handed to the printer,
+    // long before the paper comes out. Pace the printing screen to the real
+    // printer: the clock starts when the printing screen first shows.
+    const printDurationMs = summarizePrintJob(job).totalWaitSeconds * 1000;
+
+    const enterPrinting = () => {
+      if (printingStartedAtRef.current === null) {
+        printingStartedAtRef.current = Date.now();
+        setSecondsLeft(Math.ceil(printDurationMs / 1000));
+      }
+      setStatus('printing');
+    };
 
     const clearTimers = () => {
       if (pollTimeoutRef.current) {
@@ -121,17 +133,18 @@ export function Status() {
         clearTimeout(pollTimeoutRef.current);
         pollTimeoutRef.current = null;
       }
-      if (progressIntervalRef.current) {
-        clearInterval(progressIntervalRef.current);
-        progressIntervalRef.current = null;
-      }
 
-      // Wait for the expected physical print duration even if the backend
-      // reports completion as soon as the job is queued to the printer.
-      const remainingPrintTime = Math.max(0, minimumPrintDurationMs - (Date.now() - statusPageStartedAt));
+      enterPrinting();
+      const startedAt = printingStartedAtRef.current ?? Date.now();
+      const remainingPrintTime = Math.max(0, printDurationMs - (Date.now() - startedAt));
       completionDelayRef.current = window.setTimeout(() => {
         if (!mountedRef.current) return;
+        if (progressIntervalRef.current) {
+          clearInterval(progressIntervalRef.current);
+          progressIntervalRef.current = null;
+        }
         setProgress(100);
+        setSecondsLeft(0);
         setStatus('completed');
         completionReturnRef.current = window.setTimeout(() => {
           if (mountedRef.current) returnHome();
@@ -160,9 +173,12 @@ export function Status() {
       }
 
       if (PRINTING_STATES.includes(lowerStatus)) {
-        setStatus('printing');
+        enterPrinting();
         return;
       }
+
+      // Once printing has started, never fall back to the processing screen.
+      if (printingStartedAtRef.current !== null) return;
 
       setStatus('processing');
     };
@@ -225,21 +241,8 @@ export function Status() {
 
         if (!mountedRef.current || completionScheduledRef.current) return;
 
-        if (SUCCESS_STATES.includes(lowerStatus)) {
-          scheduleCompletion();
-          return;
-        }
-
-        if (FAILURE_STATES.includes(lowerStatus)) {
-          setStatus('failed');
-          if (progressIntervalRef.current) {
-            clearInterval(progressIntervalRef.current);
-            progressIntervalRef.current = null;
-          }
-          return;
-        }
-
         applyBackendStatus(lowerStatus);
+        if (SUCCESS_STATES.includes(lowerStatus) || FAILURE_STATES.includes(lowerStatus)) return;
         schedulePoll(realtimeConnectedRef.current ? (document.hidden ? 30000 : 15000) : (document.hidden ? 15000 : 3000));
       } catch {
         if (mountedRef.current && !completionScheduledRef.current) {
@@ -251,12 +254,15 @@ export function Status() {
     connectRealtime();
     void pollStatus();
 
+    // Progress follows the paced print time; it holds at 99% until the
+    // engine has also confirmed the job, then the completion timer sets 100%.
     progressIntervalRef.current = window.setInterval(() => {
-      setProgress(prev => {
-        if (completionScheduledRef.current || prev >= 90 || statusRef.current !== 'printing') return prev;
-        return Math.min(90, prev + Math.floor(Math.random() * 10) + 5);
-      });
-    }, 1000);
+      const startedAt = printingStartedAtRef.current;
+      if (startedAt === null || statusRef.current !== 'printing') return;
+      const elapsed = Date.now() - startedAt;
+      setProgress(Math.min(99, (elapsed / printDurationMs) * 100));
+      setSecondsLeft(Math.max(0, Math.ceil((printDurationMs - elapsed) / 1000)));
+    }, 250);
 
     return () => {
       mountedRef.current = false;
@@ -302,22 +308,31 @@ export function Status() {
         {status === 'printing' && (
           <div className="flex flex-col items-center max-w-2xl text-center">
             <div className="w-32 h-32 text-white rounded-full flex items-center justify-center mb-8 relative shadow-lg kiosk-circle-rose">
-              <div className="absolute inset-0 rounded-full border-8 kiosk-ring-rose"></div>
-              <div
-                className="absolute inset-0 rounded-full border-8 transition-all duration-500 kiosk-ring-rose"
-                style={{
-                  clipPath: `inset(${100 - progress}% 0 0 0)`,
-                  transition: 'clip-path 1s linear'
-                }}
-              ></div>
+              <div className="absolute inset-0 rounded-full border-8 animate-spin kiosk-ring-rose"></div>
               <Printer size={64} className="animate-pulse relative z-10" />
             </div>
             <h2 className="text-4xl font-bold mb-4 kiosk-heading">
               Printing your job...
             </h2>
             <p className="text-2xl kiosk-copy">
-              Please wait while your document is being prepared.
+              Please wait while your document is being printed.
             </p>
+            <div className="w-full max-w-md mt-10">
+              <div className="h-4 w-full rounded-full overflow-hidden bg-rose-100">
+                <div
+                  className="h-full rounded-full"
+                  style={{
+                    width: `${progress}%`,
+                    background: 'linear-gradient(90deg, #e11d48 0%, #f97316 100%)',
+                    transition: 'width 250ms linear'
+                  }}
+                ></div>
+              </div>
+              <div className="flex justify-between mt-3 text-xl font-semibold kiosk-copy">
+                <span>{Math.floor(progress)}%</span>
+                {secondsLeft !== null && <span>{secondsLeft > 0 ? `About ${secondsLeft}s left` : 'Finishing up...'}</span>}
+              </div>
+            </div>
           </div>
         )}
 

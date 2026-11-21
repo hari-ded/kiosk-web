@@ -3,10 +3,12 @@ import { PrintJob } from '../types';
 const DEFAULT_PAGES_PER_SHEET = 1;
 const DEFAULT_DUPLEX = false;
 const DEFAULT_ORIENTATION = 'Portrait';
-const FIXED_SPOOL_DELAY_SECONDS = 2.5;
-const SIMPLEX_SECONDS_PER_SHEET = 0.5;
-// Duplex sheets take about 3–4 seconds to print both sides on the kiosk.
-const DUPLEX_SECONDS_PER_SHEET = 3.5;
+// The engine reports "printed" as soon as the file reaches the printer, so the
+// printing screen is paced to the real printer instead: a 7s warm-up, then 3s
+// per single-sided page or 10s per double-sided sheet (two pages).
+const FIXED_SPOOL_DELAY_SECONDS = 7;
+const SIMPLEX_SECONDS_PER_SHEET = 3;
+const DUPLEX_SECONDS_PER_SHEET = 10;
 
 export interface PrintJobSummary {
   orientation: string;
