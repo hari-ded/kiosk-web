@@ -98,11 +98,11 @@ export function Confirm() {
         return;
       }
 
-      const releaseSuccess = await releaseJob(job.pickup_code, job.id);
-      if (releaseSuccess) {
+      const releaseResult = await releaseJob(job.pickup_code, job.id);
+      if (releaseResult.success) {
         navigate(`/status/${job.id}`, { state: { job } });
       } else {
-        setError('Failed to release job.');
+        setError(releaseResult.error || 'Failed to release job.');
         setLoading(false);
       }
     } catch {

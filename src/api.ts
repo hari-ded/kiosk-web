@@ -146,7 +146,7 @@ export async function sendKioskHeartbeat(): Promise<void> {
   });
   if (!res.ok) throw new Error('Failed to send kiosk heartbeat');
 }
-export async function releaseJob(code: string, uploadId?: string): Promise<boolean> {
+export async function releaseJob(code: string, uploadId?: string): Promise<{ success: boolean; error?: string }> {
   const pickupCode = normalizePickupCode(code);
   const res = await fetch(`${API_URL}/release_job`, {
     method: 'POST',
@@ -154,10 +154,12 @@ export async function releaseJob(code: string, uploadId?: string): Promise<boole
     headers: buildHeaders(),
     body: JSON.stringify({ pickup_code: pickupCode, kiosk_id: KIOSK_ID, upload_id: uploadId })
   });
-  if (!res.ok) return false;
   const data = await readJsonResponse<any>(res);
-  if (!data) return false;
-  return data.success;
+  if (!data) return { success: false, error: `Server returned an invalid release response (${res.status})` };
+  return {
+    success: res.ok && data.success === true,
+    error: data.error || data.message || `Unable to release file (${res.status})`,
+  };
 }
 
 export async function checkJobStatus(uploadId: string): Promise<string> {
