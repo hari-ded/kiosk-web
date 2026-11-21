@@ -32,7 +32,6 @@ export function Status() {
 
   const [status, setStatus] = useState<'processing' | 'printing' | 'completed' | 'failed'>('processing');
   const [progress, setProgress] = useState(0);
-  const [secondsLeft, setSecondsLeft] = useState<number | null>(null);
 
   const mountedRef = useRef(true);
   const statusRef = useRef(status);
@@ -87,7 +86,6 @@ export function Status() {
     const enterPrinting = () => {
       if (printingStartedAtRef.current === null) {
         printingStartedAtRef.current = Date.now();
-        setSecondsLeft(Math.ceil(printDurationMs / 1000));
       }
       setStatus('printing');
     };
@@ -144,7 +142,6 @@ export function Status() {
           progressIntervalRef.current = null;
         }
         setProgress(100);
-        setSecondsLeft(0);
         setStatus('completed');
         completionReturnRef.current = window.setTimeout(() => {
           if (mountedRef.current) returnHome();
@@ -261,7 +258,6 @@ export function Status() {
       if (startedAt === null || statusRef.current !== 'printing') return;
       const elapsed = Date.now() - startedAt;
       setProgress(Math.min(99, (elapsed / printDurationMs) * 100));
-      setSecondsLeft(Math.max(0, Math.ceil((printDurationMs - elapsed) / 1000)));
     }, 250);
 
     return () => {
@@ -318,7 +314,10 @@ export function Status() {
               Please wait while your document is being printed.
             </p>
             <div className="w-full max-w-md mt-10">
-              <div className="h-4 w-full rounded-full overflow-hidden bg-rose-100">
+              <div
+                className="h-4 w-full rounded-full overflow-hidden"
+                style={{ background: '#e5e7eb', boxShadow: 'inset 0 1px 2px rgba(15, 23, 42, 0.12)' }}
+              >
                 <div
                   className="h-full rounded-full"
                   style={{
@@ -328,9 +327,8 @@ export function Status() {
                   }}
                 ></div>
               </div>
-              <div className="flex justify-between mt-3 text-xl font-semibold kiosk-copy">
-                <span>{Math.floor(progress)}%</span>
-                {secondsLeft !== null && <span>{secondsLeft > 0 ? `About ${secondsLeft}s left` : 'Finishing up...'}</span>}
+              <div className="mt-3 text-xl font-semibold text-center kiosk-copy">
+                {Math.floor(progress)}%
               </div>
             </div>
           </div>
