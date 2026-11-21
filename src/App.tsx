@@ -53,10 +53,27 @@ export default function App() {
     const timer = window.setInterval(heartbeat, 30_000);
     const onVisibilityChange = () => { if (active) heartbeat(); };
     document.addEventListener('visibilitychange', onVisibilityChange);
+
+    // A touch means a customer is at the kiosk: tell the backend straight away
+    // so the print engine is already polling fast by the time they press Print.
+    // At most one ping a minute; the backend's fast window lasts two minutes.
+    let lastCustomerPing = 0;
+    const onCustomerTouch = () => {
+      const now = Date.now();
+      if (now - lastCustomerPing < 60_000) return;
+      lastCustomerPing = now;
+      void sendKioskHeartbeat(true).catch(() => {
+        lastCustomerPing = 0;
+      });
+    };
+    window.addEventListener('pointerdown', onCustomerTouch, { passive: true });
+    window.addEventListener('keydown', onCustomerTouch);
     return () => {
       active = false;
       window.clearInterval(timer);
       document.removeEventListener('visibilitychange', onVisibilityChange);
+      window.removeEventListener('pointerdown', onCustomerTouch);
+      window.removeEventListener('keydown', onCustomerTouch);
     };
   }, []);
 

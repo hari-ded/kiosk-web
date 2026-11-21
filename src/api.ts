@@ -137,12 +137,12 @@ export async function fetchKioskStatus(): Promise<string | null> {
   }
 }
 
-export async function sendKioskHeartbeat(): Promise<void> {
+export async function sendKioskHeartbeat(customerPresent = false): Promise<void> {
   const res = await fetch(`${API_URL}/kiosks/${encodeURIComponent(KIOSK_ID)}/heartbeat`, {
     method: 'POST',
     cache: 'no-store',
     headers: buildHeaders(),
-    body: JSON.stringify({ source: 'web_kiosk' }),
+    body: JSON.stringify({ source: 'web_kiosk', customer_present: customerPresent }),
   });
   if (!res.ok) throw new Error('Failed to send kiosk heartbeat');
 }
