@@ -78,10 +78,16 @@ export function SleepGuard() {
         <button type="button" aria-label="Wake the kiosk" onClick={() => { lastTouchRef.current = Date.now(); setAsleep(false); }} className="fixed inset-0 z-[90] bg-black" />
       )}
       {!online && (
-        <div role="alert" className="fixed inset-0 z-[80] flex flex-col items-center justify-center gap-6 p-10 text-center kiosk-shell">
-          <div className="w-28 h-28 rounded-full flex items-center justify-center text-white kiosk-circle-amber"><WifiOff size={56} /></div>
-          <h1 className="text-5xl font-extrabold kiosk-heading">This kiosk is offline</h1>
-          <p className="max-w-2xl text-2xl kiosk-copy">It will start again by itself when the internet is back. Your files and payments are safe; try again in a few minutes.</p>
+        <div role="alert" className="fixed inset-0 z-[80] flex items-center justify-center p-8 kiosk-offline-backdrop">
+          <div className="w-full max-w-2xl rounded-[2rem] px-10 py-12 text-center flex flex-col items-center gap-6 kiosk-panel-strong">
+            <div className="w-28 h-28 rounded-full flex items-center justify-center text-white kiosk-circle-amber"><WifiOff size={56} /></div>
+            <h1 className="text-5xl font-extrabold kiosk-heading">This kiosk is offline</h1>
+            <p className="text-2xl leading-relaxed kiosk-copy">It will start again by itself when the internet is back. Your files and payments are safe; try again in a few minutes.</p>
+            <p className="flex items-center gap-3 text-xl font-semibold kiosk-copy">
+              <span className="h-6 w-6 rounded-full border-4 border-slate-300 border-t-amber-500 animate-spin" aria-hidden="true" />
+              Reconnecting…
+            </p>
+          </div>
         </div>
       )}
     </>
