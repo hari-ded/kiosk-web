@@ -368,7 +368,7 @@ async function startServer() {
       return sendBackendResponse(res, backendRes);
     });
 
-    // Staff mode (PIN-checked by the backend) and post-print feedback.
+    // Staff mode (unlocked from a staff member's phone) and post-print feedback.
     const forwardKioskPost = (suffix: string) => async (req: express.Request, res: express.Response) => {
       const backendRes = await proxyBackend(`/kiosks/${encodeURIComponent(req.params.kiosk_id)}/${suffix}`, {
         method: 'POST',
@@ -380,7 +380,9 @@ async function startServer() {
       }
       return sendBackendResponse(res, backendRes);
     };
-    app.post('/api/kiosks/:kiosk_id/staff/verify', forwardKioskPost('staff/verify'));
+    app.post('/api/kiosks/:kiosk_id/staff/unlock/start', forwardKioskPost('staff/unlock/start'));
+    app.post('/api/kiosks/:kiosk_id/staff/unlock/status', forwardKioskPost('staff/unlock/status'));
+    app.post('/api/kiosks/:kiosk_id/staff/unlock/end', forwardKioskPost('staff/unlock/end'));
     app.post('/api/kiosks/:kiosk_id/staff/action', forwardKioskPost('staff/action'));
     app.post('/api/kiosks/:kiosk_id/feedback', forwardKioskPost('feedback'));
 

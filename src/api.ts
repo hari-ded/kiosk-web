@@ -289,29 +289,40 @@ export async function updateSupportCall(callId: string, status: SupportCall['sta
 }
 
 // ---------------------------------------------------------------- staff mode
+// Staff unlock the panel by scanning a QR code with their phone and approving
+// it in the admin panel. The kiosk keeps a secret (poll_secret) that only it
+// knows; once approved, that secret is the staff session for a few minutes.
 export type StaffSnapshot = {
   success: boolean;
   error?: string;
+  locked?: boolean;
+  status?: 'pending' | 'approved' | 'expired';
+  staff_name?: string;
   kiosk?: { name: string; status: string; paper_remaining: number | null; paper_capacity: number | null; toner_remaining: number | null; toner_capacity: number | null; last_seen: string | null };
   alerts?: { id: number; alert_type: string; severity: string; title: string; created_at: string }[];
   today?: { printed: number; failed: number; pages: number };
 };
+export type StaffUnlockStart = { success: boolean; error?: string; poll_secret?: string; unlock_url?: string; expires_in?: number };
 
-async function staffCall(path: string, body: Record<string, unknown>): Promise<StaffSnapshot> {
+async function staffPost<T extends { success: boolean; error?: string }>(path: string, body: Record<string, unknown>): Promise<T> {
   try {
     const res = await fetch(`${API_URL}/kiosks/${encodeURIComponent(KIOSK_ID)}/staff/${path}`, {
       method: 'POST', cache: 'no-store', headers: buildHeaders(), body: JSON.stringify(body),
     });
-    const data = await readJsonResponse<StaffSnapshot>(res);
-    if (!data) return { success: false, error: `Server error (${res.status})` };
+    const data = await readJsonResponse<T>(res);
+    if (!data) return { success: false, error: `Server error (${res.status})` } as T;
     return { ...data, success: res.ok && data.success === true };
   } catch {
-    return { success: false, error: 'No connection' };
+    return { success: false, error: 'No connection' } as T;
   }
 }
 
-export const staffVerify = (pin: string) => staffCall('verify', { pin });
-export const staffAction = (pin: string, action: 'refill_paper' | 'refill_toner' | 'resolve_alerts') => staffCall('action', { pin, action });
+export const staffUnlockStart = () => staffPost<StaffUnlockStart>('unlock/start', {});
+export const staffUnlockStatus = (pollSecret: string) => staffPost<StaffSnapshot>('unlock/status', { poll_secret: pollSecret });
+export const staffUnlockEnd = (pollSecret: string) => staffPost<{ success: boolean; error?: string }>('unlock/end', { poll_secret: pollSecret });
+export type StaffActionName = 'add_paper' | 'refill_paper' | 'refill_toner' | 'resolve_alerts' | 'refresh';
+export const staffAction = (pollSecret: string, action: StaffActionName, extra: Record<string, unknown> = {}) =>
+  staffPost<StaffSnapshot>('action', { poll_secret: pollSecret, action, ...extra });
 
 // ---------------------------------------------------------------- feedback
 export async function sendFeedback(uploadId: string, rating: 1 | -1, reason?: string): Promise<boolean> {
