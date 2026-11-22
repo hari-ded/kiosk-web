@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { checkJobStatus } from '../api';
+import { checkJobProgress, type JobProgress } from '../api';
 import { PrintJob } from '../types';
 import { Layout } from '../components/Layout';
-import { Printer, CheckCircle2, XCircle, Home } from 'lucide-react';
+import { Printer, CheckCircle2, XCircle, Home, AlertTriangle } from 'lucide-react';
 import { playSound } from '../utils/audio';
 import { createPrinterSocket, type PrinterSocket } from '../utils/printerTransport';
 import { summarizePrintJob } from '../utils/printJob';
@@ -21,6 +21,16 @@ function readStoredJob() {
   }
 }
 
+// Why a print failed, in words for the customer.
+const FAILURE_TEXT: Record<string, string> = {
+  'media-jam': 'The paper jammed in the printer.',
+  'media-empty': 'The printer ran out of paper.',
+  'door-open': 'A printer cover was left open.',
+  'toner-empty': 'The printer ran out of toner.',
+  offline: 'The printer stopped responding.',
+  'short-print': 'Not all of your pages came out.',
+};
+
 function normalizeStatus(value: unknown) {
   return String(value || '').trim().toLowerCase();
 }
@@ -28,10 +38,15 @@ function normalizeStatus(value: unknown) {
 export function Status() {
   const navigate = useNavigate();
   const location = useLocation();
-  const job = (location.state?.job as PrintJob | undefined) || readStoredJob();
+  // One stable job object: re-reading storage on every render would restart
+  // the polling effect each time (e.g. after a kiosk reload).
+  const job = useMemo(() => (location.state?.job as PrintJob | undefined) || readStoredJob(), [location.state]);
 
   const [status, setStatus] = useState<'processing' | 'printing' | 'completed' | 'failed'>('processing');
   const [progress, setProgress] = useState(0);
+  // Real pages-out from the printer, when the printer can report them.
+  const [live, setLive] = useState<JobProgress | null>(null);
+  const realProgressRef = useRef(false);
 
   const mountedRef = useRef(true);
   const statusRef = useRef(status);
@@ -134,7 +149,9 @@ export function Status() {
 
       enterPrinting();
       const startedAt = printingStartedAtRef.current ?? Date.now();
-      const remainingPrintTime = Math.max(0, printDurationMs - (Date.now() - startedAt));
+      // With real pages-out from the printer the job is already finished;
+      // otherwise keep pacing to the estimated print time.
+      const remainingPrintTime = realProgressRef.current ? 1200 : Math.max(0, printDurationMs - (Date.now() - startedAt));
       completionDelayRef.current = window.setTimeout(() => {
         if (!mountedRef.current) return;
         if (progressIntervalRef.current) {
@@ -233,14 +250,24 @@ export function Status() {
 
     const pollStatus = async () => {
       try {
-        const currentStatus = await checkJobStatus(job.id);
+        const { status: currentStatus, progress: liveProgress } = await checkJobProgress(job.id);
         const lowerStatus = normalizeStatus(currentStatus);
 
         if (!mountedRef.current || completionScheduledRef.current) return;
 
+        if (liveProgress) {
+          setLive(liveProgress);
+          if (liveProgress.pages_done !== null && liveProgress.pages_total) {
+            realProgressRef.current = true;
+            setProgress((current) => Math.max(current, Math.min(99, (liveProgress.pages_done! / liveProgress.pages_total!) * 100)));
+          }
+          if (['printing', 'attention', 'waiting'].includes(liveProgress.phase)) enterPrinting();
+        }
         applyBackendStatus(lowerStatus);
         if (SUCCESS_STATES.includes(lowerStatus) || FAILURE_STATES.includes(lowerStatus)) return;
-        schedulePoll(realtimeConnectedRef.current ? (document.hidden ? 30000 : 15000) : (document.hidden ? 15000 : 3000));
+        // Poll quickly while paper is coming out so the count keeps up.
+        const printingNow = statusRef.current === 'printing';
+        schedulePoll(document.hidden ? 15000 : printingNow ? 2000 : realtimeConnectedRef.current ? 15000 : 3000);
       } catch {
         if (mountedRef.current && !completionScheduledRef.current) {
           schedulePoll(realtimeConnectedRef.current ? 10000 : 5000);
@@ -255,7 +282,7 @@ export function Status() {
     // engine has also confirmed the job, then the completion timer sets 100%.
     progressIntervalRef.current = window.setInterval(() => {
       const startedAt = printingStartedAtRef.current;
-      if (startedAt === null || statusRef.current !== 'printing') return;
+      if (startedAt === null || statusRef.current !== 'printing' || realProgressRef.current) return;
       const elapsed = Date.now() - startedAt;
       setProgress(Math.min(99, (elapsed / printDurationMs) * 100));
     }, 250);
@@ -308,11 +335,25 @@ export function Status() {
               <Printer size={64} className="animate-pulse relative z-10" />
             </div>
             <h2 className="text-4xl font-bold mb-4 kiosk-heading">
-              Printing your job...
+              {live && (live.phase === 'attention' || live.phase === 'waiting') ? 'Printing paused' : 'Printing your job...'}
             </h2>
-            <p className="text-2xl kiosk-copy">
-              Please wait while your document is being printed.
-            </p>
+            {live && (live.phase === 'attention' || live.phase === 'waiting') ? (
+              <div className="flex items-start gap-4 rounded-2xl border-2 border-amber-300 bg-amber-50 px-6 py-5 text-left">
+                <AlertTriangle size={40} className="shrink-0 text-amber-600" />
+                <div>
+                  <p className="text-2xl font-bold text-amber-900">{live.alert_text || 'The printer needs attention. Staff have been notified.'}</p>
+                  <p className="mt-1 text-xl text-amber-800">Your print continues by itself once it is fixed. Please wait here.</p>
+                </div>
+              </div>
+            ) : (
+              <p className="text-2xl kiosk-copy">
+                {live?.pages_done != null && live.pages_total
+                  ? live.pages_done >= live.pages_total
+                    ? 'All pages are out. Finishing up…'
+                    : `Page ${live.pages_done + 1} of ${live.pages_total} is printing.`
+                  : 'Please wait while your document is being printed.'}
+              </p>
+            )}
             <div className="w-full max-w-md mt-10">
               <div
                 className="h-4 w-full rounded-full overflow-hidden"
@@ -328,7 +369,7 @@ export function Status() {
                 ></div>
               </div>
               <div className="mt-3 text-xl font-semibold text-center kiosk-copy">
-                {Math.floor(progress)}%
+                {live?.pages_done != null && live.pages_total ? `${Math.min(live.pages_done, live.pages_total)} of ${live.pages_total} out` : `${Math.floor(progress)}%`}
               </div>
             </div>
           </div>
@@ -367,8 +408,12 @@ export function Status() {
             <h2 className="text-4xl font-bold mb-4 kiosk-heading">
               Printing Failed
             </h2>
-            <p className="text-2xl text-gray-600 mb-12">
-              There was a problem completing your print job. Please try again or request support.
+            <p className="text-2xl text-gray-600 mb-4">
+              {(live?.alert && FAILURE_TEXT[live.alert]) || 'There was a problem completing your print job.'}
+              {live?.alert === 'short-print' && live.pages_done != null && live.pages_total ? ` ${live.pages_done} of ${live.pages_total} came out.` : ''}
+            </p>
+            <p className="text-xl text-gray-600 mb-12">
+              Your money is safe: print it again for free from your AROX history, or it will be refunded. Staff have been told.
             </p>
             <button
               type="button"

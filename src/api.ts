@@ -162,6 +162,31 @@ export async function releaseJob(code: string, uploadId?: string): Promise<{ suc
   };
 }
 
+/** Live printing progress, reported by the engine while it reads the printer. */
+export type JobProgress = {
+  phase: 'waiting' | 'printing' | 'attention' | 'unverified' | 'failed' | 'done' | string;
+  pages_done: number | null;
+  pages_total: number | null;
+  alert: string | null;
+  alert_text: string | null;
+  message: string | null;
+};
+
+export async function checkJobProgress(uploadId: string): Promise<{ status: string; progress: JobProgress | null }> {
+  try {
+    const res = await fetch(`${API_URL}/job_status/${uploadId}`, {
+      cache: 'no-store',
+      headers: buildHeaders()
+    });
+    const data = await readJsonResponse<any>(res);
+    if (!data) return { status: 'unknown', progress: null };
+    const progress = data.progress && typeof data.progress === 'object' ? (data.progress as JobProgress) : null;
+    return { status: String(data.job_status ?? data.status ?? 'unknown'), progress };
+  } catch {
+    return { status: 'unknown', progress: null };
+  }
+}
+
 export async function checkJobStatus(uploadId: string): Promise<string> {
   try {
     const res = await fetch(`${API_URL}/job_status/${uploadId}`, {
