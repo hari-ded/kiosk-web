@@ -5,6 +5,7 @@ import { validateJobCode } from '../api';
 import { PrintJob } from '../types';
 import { Layout } from '../components/Layout';
 import { getDisplayFilename } from '../utils/printJob';
+import { clearQueue, startQueue } from '../utils/printQueue';
 
 function readStoredJobs(): PrintJob[] {
   try {
@@ -61,14 +62,22 @@ export function OrderFiles() {
     return () => window.clearInterval(timer);
   }, [refresh]);
 
-  const selectJob = (job: PrintJob) => {
+  const selectJob = (job: PrintJob, keepQueue = false) => {
     if (job.status.toLowerCase() !== 'awaitingrelease') return;
+    if (!keepQueue) clearQueue();
     sessionStorage.setItem('arox_current_job', JSON.stringify(job));
     sessionStorage.setItem('arox_pickup_order_code', job.pickup_code);
     navigate('/confirm/' + job.id, { state: { job, orderMode: true } });
   };
 
-  const hasReady = jobs.some(job => job.status.toLowerCase() === 'awaitingrelease');
+  const readyJobs = jobs.filter(job => job.status.toLowerCase() === 'awaitingrelease');
+  const hasReady = readyJobs.length > 0;
+  // Print every ready file one after another, without coming back to this list.
+  const printAll = () => {
+    if (readyJobs.length === 0) return;
+    startQueue(readyJobs);
+    selectJob(readyJobs[0], true);
+  };
   const hasActive = jobs.some(job => ['onkiosk', 'queued', 'printing', 'processing', 'downloading', 'validating', 'spooling'].includes(job.status.toLowerCase()));
   const hasFailed = jobs.some(job => job.status.toLowerCase() === 'failed');
   const allComplete = jobs.length > 0 && jobs.every(job => ['printed', 'done', 'completed'].includes(job.status.toLowerCase()));
@@ -118,6 +127,11 @@ export function OrderFiles() {
             </button>
           </div>
           {error && <p role="alert" className="mb-4 text-lg font-semibold kiosk-text-red shrink-0">{error}</p>}
+          {readyJobs.length > 1 && !hasActive && (
+            <button type="button" onClick={printAll} className="mb-5 shrink-0 h-20 w-full rounded-2xl flex items-center justify-center gap-3 text-2xl font-extrabold kiosk-primary-rose">
+              <Printer size={30} /> Print all {readyJobs.length} files
+            </button>
+          )}
           {loading && jobs.length === 0 ? (
             <div className="py-12 text-center kiosk-copy">Loading order files…</div>
           ) : jobs.length === 0 ? (

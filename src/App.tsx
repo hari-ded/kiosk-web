@@ -19,6 +19,7 @@ import { SupportOverlay } from './components/SupportOverlay';
 import { SupportContext } from './contexts/SupportContext';
 import { fetchKioskStatus, sendKioskHeartbeat } from './api';
 import { OutOfStation } from './screens/OutOfStation';
+import { SleepGuard } from './components/SleepGuard';
 
 export default function App() {
   const [showSupport, setShowSupport] = useState(false);
@@ -81,6 +82,7 @@ export default function App() {
     <ErrorBoundary>
       <SupportContext.Provider value={() => setShowSupport(true)}>
         <BrowserRouter>
+          <SleepGuard />
           {kioskInMaintenance ? <OutOfStation /> : (
             <Routes>
               <Route path="/" element={<Home />} />

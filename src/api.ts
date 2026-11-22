@@ -287,3 +287,41 @@ export async function updateSupportCall(callId: string, status: SupportCall['sta
   if (!data?.call) return null;
   return data.call as SupportCall;
 }
+
+// ---------------------------------------------------------------- staff mode
+export type StaffSnapshot = {
+  success: boolean;
+  error?: string;
+  kiosk?: { name: string; status: string; paper_remaining: number | null; paper_capacity: number | null; toner_remaining: number | null; toner_capacity: number | null; last_seen: string | null };
+  alerts?: { id: number; alert_type: string; severity: string; title: string; created_at: string }[];
+  today?: { printed: number; failed: number; pages: number };
+};
+
+async function staffCall(path: string, body: Record<string, unknown>): Promise<StaffSnapshot> {
+  try {
+    const res = await fetch(`${API_URL}/kiosks/${encodeURIComponent(KIOSK_ID)}/staff/${path}`, {
+      method: 'POST', cache: 'no-store', headers: buildHeaders(), body: JSON.stringify(body),
+    });
+    const data = await readJsonResponse<StaffSnapshot>(res);
+    if (!data) return { success: false, error: `Server error (${res.status})` };
+    return { ...data, success: res.ok && data.success === true };
+  } catch {
+    return { success: false, error: 'No connection' };
+  }
+}
+
+export const staffVerify = (pin: string) => staffCall('verify', { pin });
+export const staffAction = (pin: string, action: 'refill_paper' | 'refill_toner' | 'resolve_alerts') => staffCall('action', { pin, action });
+
+// ---------------------------------------------------------------- feedback
+export async function sendFeedback(uploadId: string, rating: 1 | -1, reason?: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/kiosks/${encodeURIComponent(KIOSK_ID)}/feedback`, {
+      method: 'POST', cache: 'no-store', headers: buildHeaders(),
+      body: JSON.stringify({ upload_id: uploadId, rating, reason }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}

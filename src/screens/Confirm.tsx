@@ -6,6 +6,7 @@ import { Layout } from '../components/Layout';
 import { ArrowLeft, ArrowUpDown, Clock3, Copy, FileText, Hash, Layers3, LayoutGrid, RotateCw, ShieldCheck, Sparkles } from 'lucide-react';
 import { playSound } from '../utils/audio';
 import { formatSeconds, getDisplayFilename, summarizePrintJob } from '../utils/printJob';
+import { queuePosition } from '../utils/printQueue';
 
 function readStoredJob() {
   try {
@@ -141,6 +142,7 @@ export function Confirm() {
             <div className="absolute inset-0 rounded-full border-8 animate-spin kiosk-ring-sky"></div>
             <FileText size={48} className="relative z-10" />
           </div>
+          {(() => { const position = queuePosition(job.id); return position ? <p className="mb-2 text-2xl font-bold kiosk-copy">File {position.index} of {position.total}</p> : null; })()}
           <h2 className="text-4xl font-bold mb-4 kiosk-heading">
             {loading ? 'Preparing your file...' : error ? 'Unable to start printing' : 'Preparing your file...'}
           </h2>

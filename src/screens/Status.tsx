@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { checkJobProgress, type JobProgress } from '../api';
+import { checkJobProgress, sendFeedback, type JobProgress } from '../api';
+import { clearQueue, queuePosition, takeNext } from '../utils/printQueue';
 import { PrintJob } from '../types';
 import { Layout } from '../components/Layout';
-import { Printer, CheckCircle2, XCircle, Home, AlertTriangle } from 'lucide-react';
+import { Printer, CheckCircle2, XCircle, Home, AlertTriangle, ThumbsUp, ThumbsDown } from 'lucide-react';
 import { playSound } from '../utils/audio';
 import { createPrinterSocket, type PrinterSocket } from '../utils/printerTransport';
 import { summarizePrintJob } from '../utils/printJob';
@@ -47,6 +48,9 @@ export function Status() {
   // Real pages-out from the printer, when the printer can report them.
   const [live, setLive] = useState<JobProgress | null>(null);
   const realProgressRef = useRef(false);
+  const [position] = useState(() => (job ? queuePosition(job.id) : null));
+  const [nextFile, setNextFile] = useState<PrintJob | null>(null);
+  const [feedback, setFeedback] = useState<'none' | 'up' | 'down' | 'sent'>('none');
 
   const mountedRef = useRef(true);
   const statusRef = useRef(status);
@@ -160,9 +164,20 @@ export function Status() {
         }
         setProgress(100);
         setStatus('completed');
+        // "Print all": go straight on to the next file in this order.
+        const next = takeNext(job.id);
+        if (next) {
+          setNextFile(next);
+          completionReturnRef.current = window.setTimeout(() => {
+            if (!mountedRef.current) return;
+            sessionStorage.setItem('arox_current_job', JSON.stringify(next));
+            navigate('/confirm/' + next.id, { replace: true, state: { job: next, orderMode: true } });
+          }, 3000);
+          return;
+        }
         completionReturnRef.current = window.setTimeout(() => {
           if (mountedRef.current) returnHome();
-        }, 5000);
+        }, 12000);
       }, remainingPrintTime);
     };
 
@@ -178,6 +193,7 @@ export function Status() {
       }
 
       if (FAILURE_STATES.includes(lowerStatus)) {
+        clearQueue();
         setStatus('failed');
         if (progressIntervalRef.current) {
           clearInterval(progressIntervalRef.current);
@@ -334,6 +350,7 @@ export function Status() {
               <div className="absolute inset-0 rounded-full border-8 animate-spin kiosk-ring-rose"></div>
               <Printer size={64} className="animate-pulse relative z-10" />
             </div>
+            {position && <p className="mb-2 text-2xl font-bold kiosk-copy">File {position.index} of {position.total}</p>}
             <h2 className="text-4xl font-bold mb-4 kiosk-heading">
               {live && (live.phase === 'attention' || live.phase === 'waiting') ? 'Printing paused' : 'Printing your job...'}
             </h2>
@@ -381,11 +398,30 @@ export function Status() {
               <CheckCircle2 size={80} />
             </div>
             <h2 className="text-4xl font-bold mb-4 kiosk-heading">
-              Print Complete!
+              {nextFile ? `File ${position ? position.index : ''} done` : 'Print Complete!'}
             </h2>
-            <p className="text-2xl text-gray-600 mb-12">
-              Please collect your documents from the tray below.
+            <p className="text-2xl text-gray-600 mb-8">
+              {nextFile ? `Starting the next file: ${nextFile.filename}…` : 'Please collect your documents from the tray below.'}
             </p>
+            {!nextFile && feedback !== 'sent' && (
+              <div className="mb-8 w-full rounded-2xl p-5 kiosk-panel">
+                <p className="mb-4 text-xl font-bold kiosk-heading">{feedback === 'down' ? 'Sorry! What went wrong?' : 'How was printing today?'}</p>
+                {feedback === 'none' && (
+                  <div className="flex justify-center gap-4">
+                    <button type="button" onClick={() => { setFeedback('sent'); void sendFeedback(job.id, 1); }} aria-label="Good" className="h-20 w-32 rounded-2xl flex items-center justify-center kiosk-muted-button"><ThumbsUp size={40} className="kiosk-text-emerald" /></button>
+                    <button type="button" onClick={() => setFeedback('down')} aria-label="Not good" className="h-20 w-32 rounded-2xl flex items-center justify-center kiosk-muted-button"><ThumbsDown size={40} className="kiosk-text-red" /></button>
+                  </div>
+                )}
+                {feedback === 'down' && (
+                  <div className="grid grid-cols-2 gap-3">
+                    {[['quality', 'Print quality'], ['slow', 'Too slow'], ['hard_to_use', 'Hard to use'], ['paper', 'Paper problem']].map(([reason, label]) => (
+                      <button key={reason} type="button" onClick={() => { setFeedback('sent'); void sendFeedback(job.id, -1, reason); }} className="h-16 rounded-2xl text-xl font-bold kiosk-muted-button">{label}</button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            {!nextFile && feedback === 'sent' && <p className="mb-8 text-xl font-bold kiosk-text-emerald">Thank you for the feedback!</p>}
             <button
               type="button"
               onClick={() => {

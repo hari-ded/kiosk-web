@@ -1,4 +1,5 @@
-﻿import { ReactNode } from 'react';
+﻿import { ReactNode, useRef, useState } from 'react';
+import { StaffPanel } from './StaffPanel';
 import { useInactivityTimeout } from '../hooks/useInactivityTimeout';
 import { HelpCircle, Clock3, ArrowRight } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
@@ -23,6 +24,17 @@ export function Layout({ children, disableInactivityWarning = false, hideInactiv
   const onHelp = useSupport();
 
   const showHelp = location.pathname !== '/agent' && onHelp;
+  // Staff mode: press and hold the AROX logo for 3 seconds.
+  const [staffOpen, setStaffOpen] = useState(false);
+  const holdTimer = useRef<number | null>(null);
+  const startHold = () => {
+    if (holdTimer.current) window.clearTimeout(holdTimer.current);
+    holdTimer.current = window.setTimeout(() => setStaffOpen(true), 3000);
+  };
+  const endHold = () => {
+    if (holdTimer.current) window.clearTimeout(holdTimer.current);
+    holdTimer.current = null;
+  };
 
   return (
     <div className="w-full h-full p-4 md:p-6 flex flex-col relative overflow-hidden kiosk-shell">
@@ -30,7 +42,13 @@ export function Layout({ children, disableInactivityWarning = false, hideInactiv
         <img
           src={aroxLogo}
           alt="Arox"
-          className={`${AROX_LOGO_SIZE} w-auto object-contain shrink-0 drop-shadow-sm`}
+          draggable={false}
+          onPointerDown={startHold}
+          onPointerUp={endHold}
+          onPointerLeave={endHold}
+          onPointerCancel={endHold}
+          onContextMenu={(event) => event.preventDefault()}
+          className={`${AROX_LOGO_SIZE} w-auto object-contain shrink-0 drop-shadow-sm select-none`}
         />
 
         <img
@@ -48,12 +66,15 @@ export function Layout({ children, disableInactivityWarning = false, hideInactiv
         <button
           type="button"
           onClick={onHelp}
-          className="absolute right-5 bottom-5 md:right-6 md:bottom-6 w-14 h-14 md:w-16 md:h-16 flex items-center justify-center rounded-full shadow-sm border focus:outline-none focus-visible:outline-none kiosk-muted-button z-40"
-          aria-label="Get help"
+          className="absolute right-5 bottom-5 md:right-6 md:bottom-6 h-16 md:h-[4.5rem] pl-5 pr-7 flex items-center gap-3 rounded-full shadow-md border text-xl md:text-2xl font-bold focus:outline-none focus-visible:outline-none kiosk-muted-button z-40"
+          aria-label="Need help? Call support"
         >
-          <HelpCircle size={32} />
+          <HelpCircle size={34} />
+          Need help?
         </button>
       )}
+
+      {staffOpen && <StaffPanel onClose={() => setStaffOpen(false)} />}
 
       {!disableInactivityWarning && !hideInactivityWarning && inactivity.warningVisible && (
         <div className="absolute inset-0 z-50 flex items-center justify-center p-6 kiosk-overlay kiosk-blur">
