@@ -368,6 +368,22 @@ async function startServer() {
       return sendBackendResponse(res, backendRes);
     });
 
+    // Staff mode (PIN-checked by the backend) and post-print feedback.
+    const forwardKioskPost = (suffix: string) => async (req: express.Request, res: express.Response) => {
+      const backendRes = await proxyBackend(`/kiosks/${encodeURIComponent(req.params.kiosk_id)}/${suffix}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(req.body || {}),
+      });
+      if (!backendRes) {
+        return res.status(503).json({ success: false, error: 'Backend proxy not configured' });
+      }
+      return sendBackendResponse(res, backendRes);
+    };
+    app.post('/api/kiosks/:kiosk_id/staff/verify', forwardKioskPost('staff/verify'));
+    app.post('/api/kiosks/:kiosk_id/staff/action', forwardKioskPost('staff/action'));
+    app.post('/api/kiosks/:kiosk_id/feedback', forwardKioskPost('feedback'));
+
     app.get('/api/job/:code', async (req, res) => {
       const kioskId = String(req.query.kiosk_id || '').trim();
       const query = kioskId ? `?kiosk_id=${encodeURIComponent(kioskId)}` : '';
