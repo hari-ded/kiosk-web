@@ -1,8 +1,9 @@
-﻿import { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { fetchConsumables } from '../api';
+import type { Consumables } from '../types';
 import { Layout } from '../components/Layout';
-import { Keyboard } from 'lucide-react';
+import { ArrowRight, CreditCard, KeyRound, Printer, ScanLine, Smartphone } from 'lucide-react';
 import { playSound } from '../utils/audio';
 import appDownloadQr from '../../assets/qr-code.png';
 
@@ -10,6 +11,8 @@ export function Home() {
   const navigate = useNavigate();
   const location = useLocation();
   const [loading, setLoading] = useState(true);
+  const [supplies, setSupplies] = useState<Consumables | null>(null);
+  const now = useClock();
 
   useEffect(() => {
     const thankYouFlag = sessionStorage.getItem('arox_returning_home_audio');
@@ -35,6 +38,7 @@ export function Home() {
             replace: true
           });
         } else {
+          setSupplies(data);
           setLoading(false);
         }
       })
@@ -58,60 +62,96 @@ export function Home() {
     );
   }
 
+  const hour = now.getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+  const paperPercent = supplies && supplies.paper_capacity > 0 ? Math.round((100 * supplies.paper_remaining) / supplies.paper_capacity) : null;
+
   return (
     <Layout>
-      <div className="flex-1 flex flex-col items-center justify-center relative pt-4 md:pt-6">
-        <div className="mb-5 text-center">
-          <h2 className="text-2xl md:text-3xl font-bold kiosk-heading inline-flex items-center justify-center gap-2 text-center flex-wrap md:flex-nowrap">
-            <span>Print anything&nbsp;</span>
-            <span
-              style={{
-                backgroundImage: 'linear-gradient(90deg, #0284c7 0%, #facc15 33%, #f97316 66%, #ec4899 100%)',
-                WebkitBackgroundClip: 'text',
-                backgroundClip: 'text',
-                WebkitTextFillColor: 'transparent'
-              }}
-            >
-              in seconds
+      <div className="flex-1 min-h-0 w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center px-2 pb-16 lg:pb-10">
+        {/* Left: welcome and how it works */}
+        <section className="home-left flex flex-col gap-7 kiosk-rise">
+          <div className="flex flex-wrap items-center gap-3">
+            <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-base font-bold text-emerald-700 shadow-sm ring-1 ring-emerald-200">
+              <span className="relative flex h-3 w-3"><span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70 kiosk-ping" /><span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500" /></span>
+              Kiosk ready{paperPercent !== null ? ` · paper ${paperPercent}%` : ''}
             </span>
-          </h2>
-        </div>
+            <span className="rounded-full bg-white/70 px-4 py-2 text-base font-semibold kiosk-copy shadow-sm ring-1 ring-slate-200">
+              {greeting} · {now.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}
+            </span>
+          </div>
 
-        <h3 className="text-2xl md:text-3xl font-bold mb-10 md:mb-14 text-center max-w-2xl kiosk-heading">
-          How would you like to retrieve your print job?
-        </h3>
+          <div>
+            <h1 className="home-title text-5xl xl:text-6xl font-extrabold leading-[1.05] tracking-tight kiosk-heading">
+              Print anything,
+              <br />
+              <span className="kiosk-gradient-text">in seconds.</span>
+            </h1>
+            <p className="home-sub mt-4 max-w-xl text-xl xl:text-2xl leading-relaxed kiosk-copy">
+              Upload from your phone, pay online, and collect your pages right here.
+            </p>
+          </div>
 
-        <div className="flex flex-col md:flex-row gap-6 md:gap-8 w-full max-w-5xl items-stretch">
-          <section
-            aria-labelledby="download-app-heading"
-            className="flex-1 min-h-56 md:min-h-64 rounded-2xl border shadow-sm flex flex-row items-center justify-center gap-5 md:gap-7 p-5 md:p-7 kiosk-panel"
-          >
-            <div className="text-left">
-              <h4 id="download-app-heading" className="text-xl md:text-2xl font-bold kiosk-heading">
-                Scan to Print
-              </h4>
-              <p className="mt-2 text-base md:text-lg kiosk-copy">
-                Scan the QR-Code, Upload and Pay from anywhere!
-              </p>
-            </div>
-            <img
-              src={appDownloadQr}
-              alt="QR code to download the Arox app"
-              className="w-28 h-28 md:w-36 md:h-36 object-contain rounded-xl bg-white p-2 shadow-sm shrink-0"
-            />
-          </section>
+          <ol className="grid grid-cols-3 gap-3 max-w-xl" aria-label="How it works">
+            {[
+              { icon: Smartphone, title: 'Upload', text: 'on your phone' },
+              { icon: CreditCard, title: 'Pay', text: 'UPI or card' },
+              { icon: Printer, title: 'Collect', text: 'at this kiosk' },
+            ].map((step, index) => (
+              <li key={step.title} className="relative rounded-2xl p-4 kiosk-panel">
+                <span className="absolute -top-3 left-4 grid h-7 w-7 place-items-center rounded-full bg-slate-900 text-sm font-extrabold text-white">{index + 1}</span>
+                <step.icon size={30} className="mt-1 text-sky-600" />
+                <p className="mt-2 text-lg font-extrabold kiosk-heading">{step.title}</p>
+                <p className="text-sm kiosk-copy">{step.text}</p>
+              </li>
+            ))}
+          </ol>
+        </section>
+
+        {/* Right: the two ways in */}
+        <section className="flex flex-col gap-5 kiosk-rise kiosk-rise-delay">
           <button
             type="button"
             onClick={() => navigate('/code')}
-            className="flex-1 min-h-56 md:min-h-64 border-2 rounded-2xl shadow-sm flex flex-col items-center justify-center gap-5 md:gap-6 transition-all focus:outline-none focus-visible:outline-none focus-visible:ring-0 kiosk-panel kiosk-soft-rose"
+            className="home-pickup group relative overflow-hidden rounded-[2rem] p-8 text-left text-white shadow-xl transition-transform active:scale-[0.98] focus:outline-none focus-visible:outline-none kiosk-primary-rose"
           >
-            <div className="w-20 h-20 md:w-24 md:h-24 text-white rounded-full flex items-center justify-center shadow-lg kiosk-circle-rose">
-              <Keyboard size={44} strokeWidth={2.5} />
-            </div>
-            <span className="text-xl md:text-2xl font-bold kiosk-text-rose">Enter Code</span>
+            <span aria-hidden="true" className="absolute -right-10 -top-10 h-44 w-44 rounded-full bg-white/10" />
+            <span aria-hidden="true" className="absolute -bottom-14 right-16 h-36 w-36 rounded-full bg-white/10" />
+            <span className="relative flex items-center gap-5">
+              <span className="grid h-20 w-20 shrink-0 place-items-center rounded-3xl bg-white/20 ring-1 ring-white/40 kiosk-float">
+                <KeyRound size={42} strokeWidth={2.4} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-base font-bold uppercase tracking-[0.18em] text-white/80">Already paid?</span>
+                <span className="block text-3xl xl:text-4xl font-extrabold leading-tight">Enter your pickup code</span>
+              </span>
+            </span>
+            <span className="home-pickup-code relative mt-7 flex items-center justify-between rounded-2xl bg-white/15 px-5 py-4 ring-1 ring-white/30">
+              <span className="font-mono text-2xl font-bold tracking-[0.2em] text-white/90">ARX-••••••</span>
+              <span className="flex items-center gap-2 text-xl font-extrabold">Print now <ArrowRight size={26} className="transition-transform group-active:translate-x-1" /></span>
+            </span>
           </button>
-        </div>
+
+          <div className="home-qr-card flex items-center gap-6 rounded-[2rem] p-6 kiosk-panel">
+            <img src={appDownloadQr} alt="QR code to start printing on your phone" className="home-qr h-40 w-40 shrink-0 rounded-2xl bg-white p-2 shadow-md ring-1 ring-slate-200" />
+            <div className="min-w-0">
+              <span className="inline-flex items-center gap-2 rounded-full bg-sky-50 px-3 py-1 text-sm font-bold text-sky-700 ring-1 ring-sky-200"><ScanLine size={16} />New here?</span>
+              <p className="mt-3 text-2xl font-extrabold leading-tight kiosk-heading">Scan with your phone camera</p>
+              <p className="mt-2 text-lg leading-snug kiosk-copy">Upload your file and pay. You'll get a pickup code to use here.</p>
+            </div>
+          </div>
+        </section>
       </div>
     </Layout>
   );
+}
+
+/** The current time, refreshed every 30 seconds. */
+function useClock() {
+  const [now, setNow] = useState(() => new Date());
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(new Date()), 30_000);
+    return () => window.clearInterval(timer);
+  }, []);
+  return now;
 }

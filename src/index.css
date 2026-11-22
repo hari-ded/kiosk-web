@@ -184,6 +184,59 @@
     color: #0369a1;
   }
 
+  /* Home screen */
+  .kiosk-gradient-text {
+    background-image: linear-gradient(90deg, #0284c7 0%, #f97316 55%, #ec4899 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .kiosk-rise {
+    animation: kiosk-rise 0.5s ease-out both;
+  }
+
+  .kiosk-rise-delay {
+    animation-delay: 0.12s;
+  }
+
+  .kiosk-float {
+    animation: kiosk-float 3.2s ease-in-out infinite;
+  }
+
+  .kiosk-ping {
+    animation: kiosk-ping 1.8s cubic-bezier(0, 0, 0.2, 1) infinite;
+  }
+
+  @keyframes kiosk-rise {
+    from { opacity: 0; transform: translateY(14px); }
+    to { opacity: 1; transform: none; }
+  }
+
+  @keyframes kiosk-float {
+    0%, 100% { transform: translateY(0); }
+    50% { transform: translateY(-6px); }
+  }
+
+  @keyframes kiosk-ping {
+    75%, 100% { transform: scale(2.2); opacity: 0; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kiosk-rise, .kiosk-float, .kiosk-ping { animation: none; }
+  }
+
+  /* Short tablet screens (e.g. 1024x600): tighter home page so nothing scrolls. */
+  @media (max-height: 700px) {
+    .home-left { gap: 1rem !important; }
+    .home-title { font-size: 2.6rem !important; }
+    .home-sub { margin-top: 0.5rem !important; font-size: 1.15rem !important; }
+    .home-pickup { padding: 1.25rem 1.5rem !important; }
+    .home-pickup-code { margin-top: 1rem !important; padding-top: 0.6rem !important; padding-bottom: 0.6rem !important; }
+    .home-qr-card { padding: 1rem 1.25rem !important; gap: 1rem !important; }
+    .home-qr { width: 7rem !important; height: 7rem !important; }
+  }
+
   .kiosk-text-rose {
     color: #be123c;
   }
