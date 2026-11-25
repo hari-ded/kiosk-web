@@ -51,6 +51,8 @@ export function Status() {
   const [position] = useState(() => (job ? queuePosition(job.id) : null));
   const [nextFile, setNextFile] = useState<PrintJob | null>(null);
   const [feedback, setFeedback] = useState<'none' | 'up' | 'down' | 'sent'>('none');
+  // The printer has had time to finish but the engine hasn't confirmed yet.
+  const [stalled, setStalled] = useState(false);
 
   const mountedRef = useRef(true);
   const statusRef = useRef(status);
@@ -81,6 +83,29 @@ export function Status() {
       playSound('printComplete', 0.85);
     }
   }, [status]);
+
+  // Never leave a customer stuck on "99%": after a while offer a way out,
+  // and go home by itself so the next customer can use the kiosk.
+  const pagesOut = !!(live?.pages_done != null && live.pages_total && live.pages_done >= live.pages_total);
+  const pausedAtPrinter = live?.phase === 'attention' || live?.phase === 'waiting';
+  const waitingAtEnd = status === 'printing' && !pausedAtPrinter && (progress >= 99 || pagesOut);
+  useEffect(() => {
+    if (!waitingAtEnd) { setStalled(false); return; }
+    const offer = window.setTimeout(() => setStalled(true), 75000);
+    const leave = window.setTimeout(() => {
+      sessionStorage.setItem('arox_returning_home_audio', 'thank_you');
+      if (sessionStorage.getItem('arox_pickup_order_code')) navigate('/files', { replace: true });
+      else navigate('/', { replace: true });
+    }, 6 * 60 * 1000);
+    return () => { clearTimeout(offer); clearTimeout(leave); };
+  }, [waitingAtEnd, navigate]);
+
+  const finishWaiting = () => {
+    clearQueue();
+    sessionStorage.setItem('arox_returning_home_audio', 'thank_you');
+    if (sessionStorage.getItem('arox_pickup_order_code')) navigate('/files', { replace: true });
+    else navigate('/', { replace: true });
+  };
 
   useEffect(() => {
     if (!job) {
@@ -389,6 +414,22 @@ export function Status() {
                 {live?.pages_done != null && live.pages_total ? `${Math.min(live.pages_done, live.pages_total)} of ${live.pages_total} out` : `${Math.floor(progress)}%`}
               </div>
             </div>
+            {stalled && (
+              <div className="mt-10 w-full rounded-2xl p-6 text-center kiosk-panel">
+                <p className="text-2xl font-bold kiosk-heading">This is taking longer than usual</p>
+                <p className="mt-2 text-xl kiosk-copy">
+                  {pagesOut ? 'All your pages are out. You can collect them now.' : 'If all your pages are in the tray, you can collect them now.'} If anything is missing, please ask staff.
+                </p>
+                <button
+                  type="button"
+                  onClick={finishWaiting}
+                  className="mt-5 w-full h-16 text-white text-2xl font-bold rounded-xl shadow-md flex items-center justify-center gap-3 kiosk-primary-emerald"
+                >
+                  <CheckCircle2 size={28} />
+                  I have my pages
+                </button>
+              </div>
+            )}
           </div>
         )}
 
