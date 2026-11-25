@@ -1,7 +1,7 @@
 import { Construction } from 'lucide-react';
 import { Layout } from '../components/Layout';
 
-export function OutOfStation() {
+export function OutOfStation({ notice, reopenAt }: { notice?: string | null; reopenAt?: string | null }) {
   return (
     <Layout disableInactivityWarning>
       <div className="flex-1 flex items-center justify-center p-6">
@@ -11,8 +11,9 @@ export function OutOfStation() {
           </div>
           <h1 className="text-4xl md:text-5xl font-extrabold kiosk-heading">Kiosk out of station</h1>
           <p className="mt-5 text-xl md:text-2xl kiosk-copy">
-            This kiosk is temporarily unavailable while maintenance is in progress. Please check back shortly.
+            {notice || 'This kiosk is temporarily unavailable while maintenance is in progress. Please check back shortly.'}
           </p>
+          {reopenAt && <p className="mt-4 text-2xl font-bold kiosk-heading">Back: {reopenAt}</p>}
         </section>
       </div>
     </Layout>

@@ -19,17 +19,23 @@ import { HelpAlert } from './components/HelpAlert';
 import { SupportContext } from './contexts/SupportContext';
 import { fetchKioskStatus, sendKioskHeartbeat } from './api';
 import { OutOfStation } from './screens/OutOfStation';
+import { saveSleepHours } from './components/SleepGuard';
 import { SleepGuard } from './components/SleepGuard';
 
 export default function App() {
   const [showSupport, setShowSupport] = useState(false);
   const [kioskInMaintenance, setKioskInMaintenance] = useState(false);
+  const [maintenanceNotice, setMaintenanceNotice] = useState<{ notice: string | null; reopenAt: string | null }>({ notice: null, reopenAt: null });
 
   useEffect(() => {
     let active = true;
     const checkStatus = async () => {
-      const status = await fetchKioskStatus();
-      if (active && status) setKioskInMaintenance(status === 'maintenance');
+      const info = await fetchKioskStatus();
+      if (!active || !info) return;
+      if (info.status) setKioskInMaintenance(info.status === 'maintenance');
+      setMaintenanceNotice({ notice: info.notice, reopenAt: info.reopenAt });
+      // Sleep hours set from the admin panel win over the ones saved on this kiosk.
+      if (info.sleep) saveSleepHours(info.sleep);
     };
     void checkStatus();
     // Maintenance mode is rare and not urgent; a slow poll keeps the
@@ -83,7 +89,7 @@ export default function App() {
       <SupportContext.Provider value={() => setShowSupport(true)}>
         <BrowserRouter>
           <SleepGuard />
-          {kioskInMaintenance ? <OutOfStation /> : (
+          {kioskInMaintenance ? <OutOfStation notice={maintenanceNotice.notice} reopenAt={maintenanceNotice.reopenAt} /> : (
             <Routes>
               <Route path="/" element={<Home />} />
               <Route path="/code" element={<ManualCode />} />

@@ -123,7 +123,15 @@ export async function validateJobCode(code: string): Promise<{ job?: PrintJob, j
   }
 }
 
-export async function fetchKioskStatus(): Promise<string | null> {
+export type KioskStatusInfo = {
+  status: string | null;
+  notice: string | null;
+  reopenAt: string | null;
+  sleep: { enabled: boolean; start: string; end: string } | null;
+};
+
+/** Status plus what the admin panel set for this kiosk (maintenance notice, sleep hours). */
+export async function fetchKioskStatus(): Promise<KioskStatusInfo | null> {
   try {
     const res = await fetch(`${API_URL}/kiosk/${encodeURIComponent(KIOSK_ID)}/status`, {
       cache: 'no-store',
@@ -131,7 +139,14 @@ export async function fetchKioskStatus(): Promise<string | null> {
     });
     const data = await readJsonResponse<any>(res);
     if (!res.ok || !data) return null;
-    return String(data.status || '').trim().toLowerCase() || null;
+    const sleep = data.sleep && typeof data.sleep === 'object' ? data.sleep : null;
+    return {
+      status: String(data.status || '').trim().toLowerCase() || null,
+      notice: data.notice ? String(data.notice) : null,
+      reopenAt: data.reopen_at ? String(data.reopen_at) : null,
+      sleep: sleep && typeof sleep.start === 'string' && typeof sleep.end === 'string'
+        ? { enabled: Boolean(sleep.enabled), start: sleep.start, end: sleep.end } : null,
+    };
   } catch {
     return null;
   }
