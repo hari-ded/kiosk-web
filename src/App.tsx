@@ -15,7 +15,7 @@ import { LowSupply } from './screens/LowSupply';
 import { AgentConsole } from './screens/AgentConsole';
 import { Health } from './screens/Health';
 import { ErrorBoundary } from './components/ErrorBoundary';
-import { SupportOverlay } from './components/SupportOverlay';
+import { HelpAlert } from './components/HelpAlert';
 import { SupportContext } from './contexts/SupportContext';
 import { fetchKioskStatus, sendKioskHeartbeat } from './api';
 import { OutOfStation } from './screens/OutOfStation';
@@ -97,7 +97,7 @@ export default function App() {
             </Routes>
           )}
         </BrowserRouter>
-        {showSupport && !kioskInMaintenance && <SupportOverlay onClose={() => setShowSupport(false)} />}
+        {showSupport && !kioskInMaintenance && <HelpAlert onClose={() => setShowSupport(false)} />}
       </SupportContext.Provider>
     </ErrorBoundary>
   );

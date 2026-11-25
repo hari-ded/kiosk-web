@@ -385,6 +385,7 @@ async function startServer() {
     app.post('/api/kiosks/:kiosk_id/staff/unlock/end', forwardKioskPost('staff/unlock/end'));
     app.post('/api/kiosks/:kiosk_id/staff/action', forwardKioskPost('staff/action'));
     app.post('/api/kiosks/:kiosk_id/feedback', forwardKioskPost('feedback'));
+    app.post('/api/kiosks/:kiosk_id/alerts', forwardKioskPost('alerts'));
 
     app.get('/api/job/:code', async (req, res) => {
       const kioskId = String(req.query.kiosk_id || '').trim();

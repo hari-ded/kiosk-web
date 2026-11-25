@@ -217,6 +217,21 @@ export async function sendAlert(alertType: string, source: string, message: stri
   return res.ok;
 }
 
+/** "Need help?": alert the kiosk's assigned staff and the administrators. */
+export async function sendHelpRequest(problem: string, pickupCode?: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${API_URL}/kiosks/${KIOSK_ID}/alerts`, {
+      method: 'POST',
+      cache: 'no-store',
+      headers: buildHeaders(),
+      body: JSON.stringify({ alert_type: 'help_request', source: 'kiosk_help', problem, extra: { problem, pickup_code: pickupCode || null } }),
+    });
+    return res.ok;
+  } catch {
+    return false;
+  }
+}
+
 export async function createSupportCall(category: string, description: string = ''): Promise<SupportCall> {
   const res = await fetchSupportApi('/support/calls', {
     method: 'POST',

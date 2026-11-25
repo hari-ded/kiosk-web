@@ -96,7 +96,7 @@ export function Layout({ children, disableInactivityWarning = false, hideInactiv
           type="button"
           onClick={onHelp}
           className="absolute right-5 bottom-5 md:right-6 md:bottom-6 h-16 md:h-[4.5rem] pl-5 pr-7 flex items-center gap-3 rounded-full shadow-md border text-xl md:text-2xl font-bold focus:outline-none focus-visible:outline-none kiosk-muted-button z-40"
-          aria-label="Need help? Call support"
+          aria-label="Need help? Alert staff"
         >
           <HelpCircle size={34} />
           Need help?
