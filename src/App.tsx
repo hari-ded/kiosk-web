@@ -26,6 +26,7 @@ export default function App() {
   const [showSupport, setShowSupport] = useState(false);
   const [kioskInMaintenance, setKioskInMaintenance] = useState(false);
   const [maintenanceNotice, setMaintenanceNotice] = useState<{ notice: string | null; reopenAt: string | null }>({ notice: null, reopenAt: null });
+  const [banner, setBanner] = useState<{ text: string; detail: string | null } | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -34,6 +35,7 @@ export default function App() {
       if (!active || !info) return;
       if (info.status) setKioskInMaintenance(info.status === 'maintenance');
       setMaintenanceNotice({ notice: info.notice, reopenAt: info.reopenAt });
+      setBanner(info.banner);
       // Sleep hours set from the admin panel win over the ones saved on this kiosk.
       if (info.sleep) saveSleepHours(info.sleep);
     };
@@ -91,7 +93,7 @@ export default function App() {
           <SleepGuard />
           {kioskInMaintenance ? <OutOfStation notice={maintenanceNotice.notice} reopenAt={maintenanceNotice.reopenAt} /> : (
             <Routes>
-              <Route path="/" element={<Home />} />
+              <Route path="/" element={<Home banner={banner} />} />
               <Route path="/code" element={<ManualCode />} />
               <Route path="/files" element={<OrderFiles />} />
               <Route path="/scan" element={<QrScan />} />

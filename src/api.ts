@@ -128,6 +128,7 @@ export type KioskStatusInfo = {
   notice: string | null;
   reopenAt: string | null;
   sleep: { enabled: boolean; start: string; end: string } | null;
+  banner: { text: string; detail: string | null } | null;
 };
 
 /** Status plus what the admin panel set for this kiosk (maintenance notice, sleep hours). */
@@ -146,6 +147,8 @@ export async function fetchKioskStatus(): Promise<KioskStatusInfo | null> {
       reopenAt: data.reopen_at ? String(data.reopen_at) : null,
       sleep: sleep && typeof sleep.start === 'string' && typeof sleep.end === 'string'
         ? { enabled: Boolean(sleep.enabled), start: sleep.start, end: sleep.end } : null,
+      banner: data.banner && typeof data.banner.text === 'string' && data.banner.text.trim()
+        ? { text: String(data.banner.text), detail: data.banner.detail ? String(data.banner.detail) : null } : null,
     };
   } catch {
     return null;

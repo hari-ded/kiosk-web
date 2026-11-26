@@ -7,7 +7,7 @@ import { ArrowRight, CreditCard, KeyRound, Printer, ScanLine, Smartphone } from 
 import { playSound } from '../utils/audio';
 import appDownloadQr from '../../assets/qr-code.png';
 
-export function Home() {
+export function Home({ banner = null }: { banner?: { text: string; detail: string | null } | null }) {
   const navigate = useNavigate();
   const location = useLocation();
   const [loading, setLoading] = useState(true);
@@ -71,6 +71,12 @@ export function Home() {
       <div className="flex-1 min-h-0 w-full max-w-6xl mx-auto grid grid-cols-1 lg:grid-cols-2 gap-8 lg:gap-12 items-center px-2 pb-16 lg:pb-10">
         {/* Left: welcome and how it works */}
         <section className="home-left flex flex-col gap-7 kiosk-rise">
+          {banner && (
+            <div className="kiosk-rise rounded-3xl bg-gradient-to-r from-amber-400 via-orange-400 to-rose-400 px-6 py-4 text-white shadow-lg ring-1 ring-white/40">
+              <p className="text-2xl font-extrabold leading-tight">{banner.text}</p>
+              {banner.detail && <p className="mt-1 text-lg font-semibold text-white/90">{banner.detail}</p>}
+            </div>
+          )}
           <div className="flex flex-wrap items-center gap-3">
             <span className="inline-flex items-center gap-2 rounded-full bg-white/80 px-4 py-2 text-base font-bold text-emerald-700 shadow-sm ring-1 ring-emerald-200">
               <span className="relative flex h-3 w-3"><span className="absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-70 kiosk-ping" /><span className="relative inline-flex h-3 w-3 rounded-full bg-emerald-500" /></span>
